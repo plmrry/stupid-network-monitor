@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
  */
 export async function buildNextServer() {
   await new Promise((resolve, reject) => {
-    const child = spawn("turbo", ["run", "next-build"], {
+    const child = spawn("turbo", ["run", "next:build"], {
       shell: true,
       stdio: "inherit",
     });

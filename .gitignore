@@ -50,3 +50,4 @@ dist
 out/
 
 next-env.d.ts
+/tray-image.png
