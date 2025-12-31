@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
-const WIDTH = 800;
-const HEIGHT = 600;
+const WIDTH = 16;
+const HEIGHT = 16;
 
 function generateSquigglyPath(): string {
 	const points: Array<{ x: number; y: number }> = [];

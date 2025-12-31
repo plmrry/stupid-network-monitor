@@ -21,15 +21,16 @@
 	},
 	"exclude": ["node_modules"],
 	"include": [
-		"biome.json",
-		"forge.config.ts",
-		"next-env.d.ts",
-		"dist/types/**/*.ts",
-		"dist/dev/types/**/*.ts",
+		".next/dev/types/**/*.ts",
+		".next/types/**/*.ts",
 		"**/*.mts",
 		"**/*.ts",
 		"**/*.tsx",
-		".next/types/**/*.ts",
-		".next/dev/types/**/*.ts"
+		"biome.json",
+		"dist/dev/types/**/*.ts",
+		"dist/types/**/*.ts",
+		"forge.config.ts",
+		"main.mjs",
+		"next-env.d.ts"
 	]
 }

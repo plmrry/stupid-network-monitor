@@ -41,9 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 * copy.*
+* copy *
 ignored
 
 .turbo
 .next
 dist
 out/
+
+next-env.d.ts

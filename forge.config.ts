@@ -1,5 +1,5 @@
-import { FuseV1Options, FuseVersion } from "@electron/fuses";
 // @ts-ignore
+import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 

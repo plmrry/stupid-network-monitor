@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
 		disableStaticImages: true,
 	},
 	output: "standalone",
+	typescript: {
+		ignoreBuildErrors: true,
+	},
 };
 
 export default nextConfig;

@@ -1,17 +1,17 @@
 {
 	"$schema": "https://turborepo.com/schema.json",
 	"tasks": {
-		"build": {
-			"outputs": [".next/**"]
-		},
-		"build:renderer": {
-			"outputs": [".next/**"]
-		},
-		"electron-dev": {
+		"electron:dev": {
 			"cache": false,
 			"persistent": true
 		},
-		"next-dev": {
+		"next:build": {
+			"cache": true,
+			"inputs": ["$TURBO_DEFAULT$", "!main.mjs"],
+			"outputs": [".next/**"],
+			"persistent": false
+		},
+		"next:dev": {
 			"cache": false,
 			"persistent": true
 		}
