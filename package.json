@@ -28,6 +28,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "latest",
     "@electron-forge/plugin-fuses": "latest",
     "@electron-forge/publisher-github": "latest",
+    "@electron-forge/shared-types": "latest",
     "@electron/fuses": "latest",
     "@types/react": "19.2.7",
     "electron": "latest",

@@ -36,6 +36,9 @@ importers:
       '@electron-forge/publisher-github':
         specifier: latest
         version: 7.10.2
+      '@electron-forge/shared-types':
+        specifier: ^7.10.2
+        version: 7.10.2
       '@electron/fuses':
         specifier: latest
         version: 2.0.0
