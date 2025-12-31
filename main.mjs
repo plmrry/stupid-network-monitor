@@ -86,7 +86,7 @@ async function createTray() {
   ]);
   tray.setContextMenu(contextMenu);
 
-  setInterval(updateTray, 500);
+  setInterval(updateTray, 1000);
 }
 
 function createWindow(serverUrl) {
