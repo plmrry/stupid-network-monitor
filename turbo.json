@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "next-dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "electron-dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "build": {
+      "outputs": [".next/**"]
+    },
+    "build:renderer": {
+      "outputs": [".next/**"]
+    }
+  }
+}
