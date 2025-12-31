@@ -1,7 +1,7 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { app, BrowserWindow, Menu, nativeImage, session, Tray } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,18 +34,21 @@ async function startNextServer() {
 
   return new Promise((resolve, reject) => {
     nextServer = spawn(process.execPath, [serverPath], {
+      cwd: path.join(__dirname, ".next", "standalone"),
       env: {
         ...process.env,
-        PORT: String(PORT),
         HOSTNAME: "localhost",
+        PORT: String(PORT),
       },
-      cwd: path.join(__dirname, ".next", "standalone"),
     });
 
     nextServer.stdout.on("data", (data) => {
       console.log(`[Next.js] ${data}`);
       // Resolve when server is ready
-      if (data.toString().includes("Ready") || data.toString().includes("started")) {
+      if (
+        data.toString().includes("Ready") ||
+        data.toString().includes("started")
+      ) {
         resolve();
       }
     });
@@ -73,12 +76,12 @@ function stopNextServer() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: false,
       contextIsolation: true,
+      nodeIntegration: false,
     },
+    width: 800,
   });
 
   mainWindow.loadURL(SERVER_URL);
@@ -136,8 +139,8 @@ function createTrayIcon() {
   }
 
   const icon = nativeImage.createFromBuffer(buffer, {
-    width: size,
     height: size,
+    width: size,
   });
   icon.setTemplateImage(true);
   return icon;
@@ -153,7 +156,6 @@ function createTray() {
   // Create a simple context menu
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show Window",
       click: () => {
         if (mainWindow === null) {
           createWindow();
@@ -161,14 +163,15 @@ function createTray() {
           mainWindow.show();
         }
       },
+      label: "Show Window",
     },
     { type: "separator" },
     {
-      label: "Quit",
       click: () => {
         forceQuit = true;
         app.quit();
       },
+      label: "Quit",
     },
   ]);
   tray.setContextMenu(contextMenu);
@@ -178,6 +181,22 @@ function createTray() {
 }
 
 app.whenReady().then(async () => {
+  // Set Content-Security-Policy header
+  // In dev mode, we need unsafe-eval for Next.js HMR
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+  const csp = `default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:;`;
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [csp],
+      },
+    });
+  });
+
   // Start Next.js server first (in production)
   await startNextServer();
 

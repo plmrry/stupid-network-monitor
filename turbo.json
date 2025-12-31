@@ -1,19 +1,19 @@
 {
-  "$schema": "https://turborepo.com/schema.json",
-  "tasks": {
-    "next-dev": {
-      "persistent": true,
-      "cache": false
-    },
-    "electron-dev": {
-      "persistent": true,
-      "cache": false
-    },
-    "build": {
-      "outputs": [".next/**"]
-    },
-    "build:renderer": {
-      "outputs": [".next/**"]
-    }
-  }
+	"$schema": "https://turborepo.com/schema.json",
+	"tasks": {
+		"build": {
+			"outputs": [".next/**"]
+		},
+		"build:renderer": {
+			"outputs": [".next/**"]
+		},
+		"electron-dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"next-dev": {
+			"cache": false,
+			"persistent": true
+		}
+	}
 }

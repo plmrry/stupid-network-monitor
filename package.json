@@ -1,66 +1,70 @@
 {
-  "name": "electron-network-chart",
-  "version": "1.0.0",
-  "description": "Network Chart Electron App for macOS",
-  "main": "main.mjs",
-  "scripts": {
-    "build": "pnpm build:renderer && electron-builder --mac",
-    "build:renderer": "next build",
-    "dev": "turbo run next-dev electron-dev",
-    "electron-dev": "wait-on http://localhost:3000 && electron .",
-    "format": "biome format --write .",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint --write .",
-    "make": "electron-forge make",
-    "next-dev": "next dev",
-    "package": "electron-forge package",
-    "start": "electron-forge start"
-  },
-  "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "latest",
-    "@electron-forge/cli": "latest",
-    "@electron-forge/maker-dmg": "latest",
-    "@electron-forge/plugin-auto-unpack-natives": "latest",
-    "@electron-forge/plugin-fuses": "latest",
-    "@electron-forge/publisher-github": "latest",
-    "@electron-forge/shared-types": "latest",
-    "@electron/fuses": "latest",
-    "@types/react": "19.2.7",
-    "electron": "latest",
-    "turbo": "latest",
-    "wait-on": "latest"
-  },
-  "packageManager": "pnpm@10.27.0",
-  "os": [
-    "darwin"
-  ],
-  "build": {
-    "appId": "com.paulmurray-network-chart.app",
-    "productName": "Network Chart",
-    "mac": {
-      "category": "public.app-category.utilities",
-      "target": [
-        "dmg"
-      ]
-    },
-    "files": [
-      "main.mjs",
-      ".next/standalone/**/*",
-      ".next/static/**/*"
-    ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "fs-xattr",
-      "macos-alias",
-      "sharp"
-    ]
-  }
+	"name": "electron-network-chart",
+	"version": "1.0.0",
+	"description": "Network Chart Electron App for macOS",
+	"main": "main.mjs",
+	"scripts": {
+		"build": "pnpm build:renderer && electron-builder --mac",
+		"build:renderer": "next build",
+		"dev": "turbo run next-dev electron-dev",
+		"electron-dev": "wait-on http://localhost:3000 && electron .",
+		"format": "biome format --write .",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write .",
+		"make": "electron-forge make",
+		"next-dev": "next dev",
+		"package": "electron-forge package",
+		"start": "electron-forge start",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"next": "latest",
+		"react": "latest",
+		"react-dom": "latest"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "latest",
+		"@electron-forge/cli": "latest",
+		"@electron-forge/maker-dmg": "latest",
+		"@electron-forge/plugin-auto-unpack-natives": "latest",
+		"@electron-forge/plugin-fuses": "latest",
+		"@electron-forge/publisher-github": "latest",
+		"@electron-forge/shared-types": "latest",
+		"@electron/fuses": "latest",
+		"@types/react": "19.2.7",
+		"electron": "latest",
+		"turbo": "latest",
+		"typescript": "latest",
+		"wait-on": "latest"
+	},
+	"packageManager": "pnpm@10.27.0",
+	"engines": {
+		"node": ">=25"
+	},
+	"os": [
+		"darwin"
+	],
+	"build": {
+		"appId": "com.paulmurray-network-chart.app",
+		"files": [
+			"main.mjs",
+			".next/standalone/**/*",
+			".next/static/**/*"
+		],
+		"mac": {
+			"category": "public.app-category.utilities",
+			"target": [
+				"dmg"
+			]
+		},
+		"productName": "Network Chart"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"electron",
+			"esbuild",
+			"fs-xattr",
+			"macos-alias"
+		]
+	}
 }
