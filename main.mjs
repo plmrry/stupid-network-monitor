@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import * as d3 from "d3";
-import { app, nativeImage, Tray } from "electron";
+import { app, Menu, nativeImage, Tray } from "electron";
 import sharp from "sharp";
 
 /**
@@ -108,17 +108,16 @@ async function getTrayImage({ history, trayHeight }) {
   const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
   const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
 
-	const data = history.slice(-MAX_BARS);
+  const data = history.slice(-MAX_BARS);
 
   /**
    * Get max values for scaling the chart.
-	 * Use more than what's displayed to prevent big jumps.
+   * Use more than what's displayed to prevent big jumps.
    * Make vague assumptions about internet speeds if no data yet.
    */
-	const maxData = history.slice(-MAX_BARS * 3);
+  const maxData = history.slice(-MAX_BARS * 3);
   const maxInput = d3.max(maxData, (d) => d.inputBytes) || 10_000_000;
   const maxOutput = d3.max(maxData, (d) => d.outputBytes) || 100_000;
-
 
   const totalHeight = trayHeight ?? 30;
   const totalWidth = totalHeight;
@@ -182,26 +181,44 @@ async function getTrayImage({ history, trayHeight }) {
   const svgString = /* html */ `
 <svg width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">
 	${bars.join("\n")}
+  <text stroke="black">hahah</text>
 </svg>
 `;
-
-  //   const svgString = /* html */ `
-  // <svg width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">
-  //   <rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" stroke="black" />
-  //   <rect x="0" y="0" width="${totalWidth}" height="${totalHeight / 2}" fill="none" stroke="black" />
-  // 	${bars.join("\n")}
-  // </svg>
-  // `;
 
   return createImageFromSvg(svgString);
 }
 
 app.whenReady().then(async () => {
   /**
+   * Hide the app from the dock
+   */
+  if (app.dock) {
+    app.dock.hide();
+  }
+
+  /**
    * Initialize the `Tray` a.k.a. the menu bar icon.
    */
   const emptyImage = nativeImage.createEmpty();
   const tray = new Tray(emptyImage, TRAY_GUID);
+
+  /**
+   * Ignore double-click events on the tray icon
+   */
+  tray.setIgnoreDoubleClickEvents(true);
+
+  /**
+   * Create a context menu for the tray icon
+   */
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      click: () => {
+        app.quit();
+      },
+      label: "Quit",
+    },
+  ]);
+  tray.setContextMenu(contextMenu);
 
   /**
    * See if we have existing history to load.
@@ -268,6 +285,10 @@ app.whenReady().then(async () => {
     });
     tray.setImage(image);
   });
+
+  child.on("error", (error) => {
+    // Do nothing
+  });
 });
 
 // Don't quit when all windows are closed - keep running in menu bar
@@ -279,24 +300,3 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   abortController.abort("App is quitting");
 });
-
-// appData
-// userData
-// sessionData
-// https://www.electronjs.org/docs/latest/api/app#appgetpathname
-
-// }
-// {
-//   averageInput: 1071229,
-//   averageOutput: 16206,
-//   maxInput: 71_918_605,
-//   maxOutput: 263_236
-// }
-// {
-//   averageInput: 1071202,
-//   averageOutput: 16172,
-//   maxInput: 71918605,
-//   maxOutput: 263236
-// }
-// {
-//   averageInput: 1071232,
