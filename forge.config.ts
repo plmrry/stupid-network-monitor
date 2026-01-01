@@ -14,14 +14,17 @@ const config: ForgeConfig = {
 	],
 	packagerConfig: {
 		appBundleId: "com.paulmurray.network-chart",
-		asar: true,
-		osxSign: {},
+		// Enable asar for production packaging (required by Fuses)
+		// Unpack Sharp and @img native modules to avoid loading issues
+		asar: {
+			unpack: "**/node_modules/{sharp,@img}/**/*",
+		},
+		// Enable code signing with Developer ID Application certificate
+		osxSign: {
+			identity: "Developer ID Application: Paul Murray",
+		},
 	},
 	plugins: [
-		{
-			config: {},
-			name: "@electron-forge/plugin-auto-unpack-natives",
-		},
 		new FusesPlugin({
 			version: FuseVersion.V1,
 			[FuseV1Options.RunAsNode]: false,
