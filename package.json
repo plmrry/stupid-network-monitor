@@ -1,23 +1,19 @@
 {
-	"name": "electron-network-chart",
+	"name": "stupid-network-chart",
 	"version": "1.0.0",
-	"description": "Network Chart Electron App for macOS",
+	"description": "Uses Electron to put a stupid network activity chart in the macOS menu bar.",
+	"license": "CC0-1.0",
 	"main": "main.mjs",
 	"scripts": {
-		"dev": "turbo run electron:dev",
-		"electron:dev": "electron .",
+		"dev": "electron .",
 		"make": "electron-forge make",
-		"next:build": "next build",
-		"next:dev": "next dev",
-		"next:start": "next start",
 		"package": "electron-forge package",
 		"start": "electron-forge start",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"next": "latest",
-		"react": "latest",
-		"react-dom": "latest"
+		"d3": "^7.9.0",
+		"sharp": "latest"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",
@@ -28,25 +24,22 @@
 		"@electron-forge/publisher-github": "latest",
 		"@electron-forge/shared-types": "latest",
 		"@electron/fuses": "latest",
-		"@types/react": "19.2.7",
+		"@types/d3": "^7.4.3",
 		"electron": "latest",
-		"turbo": "latest",
 		"typescript": "latest",
 		"wait-on": "latest"
 	},
 	"packageManager": "pnpm@10.27.0",
 	"engines": {
-		"node": ">=25"
+		"node": ">=22"
 	},
 	"os": [
 		"darwin"
 	],
 	"build": {
-		"appId": "com.paulmurray-network-chart.app",
+		"appId": "com.paulmurray.stupid-network-chart.app",
 		"files": [
-			"main.mjs",
-			".next/standalone/**/*",
-			".next/static/**/*"
+			"main.mjs"
 		],
 		"mac": {
 			"category": "public.app-category.utilities",
@@ -54,14 +47,15 @@
 				"dmg"
 			]
 		},
-		"productName": "Network Chart"
+		"productName": "Stupid Network Chart in Menu Bar"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"electron",
 			"esbuild",
 			"fs-xattr",
-			"macos-alias"
+			"macos-alias",
+			"sharp"
 		]
 	}
 }
