@@ -5,9 +5,9 @@
 	"license": "CC0-1.0",
 	"main": "main.mjs",
 	"scripts": {
-		"dev": "electron .",
+		"dev": "electron-forge start",
 		"magic": "node magic.mjs",
-		"make": "electron-forge make",
+		"make-dmg": "electron-forge make",
 		"package": "electron-forge package",
 		"start": "electron-forge start",
 		"typecheck": "tsc --noEmit"
