@@ -1,0 +1,101 @@
+- SIGABRT	create core image	abort(3) call (formerly SIGIOT)
+- SIGABRT      create core image    abort program (formerly SIGIOT)
+- SIGABRT      P1990      Core    Abort signal from abort(3)
+- SIGALRM	terminate process	real-time timer expired
+- SIGALRM      P1990      Term    Timer signal from alarm(2)
+- SIGALRM      terminate process    real-time timer expired
+- SIGBUS	create core image	bus error
+- SIGBUS       create core image    bus error
+- SIGBUS       P2001      Core    Bus error (bad memory access)
+- SIGCHLD	discard signal	child status has changed
+- SIGCHLD      discard signal       child status has changed
+- SIGCHLD      P2001      Ign     Child stopped, terminated, or continued
+- SIGCLD         -        Ign     A synonym for SIGCHLD
+- SIGCONT	discard signal	continue after stop
+- SIGCONT      discard signal       continue after stop
+- SIGCONT      P1990      Cont    Continue if stopped
+- SIGEMT	create core image	emulate instruction executed
+- SIGEMT         -        Term    Emulator trap
+- SIGEMT       create core image    emulate instruction executed
+- SIGFPE	create core image	floating-point exception
+- SIGFPE       create core image    floating-point exception
+- SIGFPE       P1990      Core    Erroneous arithmetic operation
+- SIGHUP	terminate process	terminal line hangup
+- SIGHUP       P1990      Term    Hangup detected on controlling terminal       or death of controlling process
+- SIGHUP       terminate process    terminal line hangup
+- SIGILL	create core image	illegal instruction
+- SIGILL       create core image    illegal instruction
+- SIGILL       P1990      Core    Illegal Instruction
+- SIGINFO	discard signal	status request from keyboard
+- SIGINFO        -                A synonym for SIGPWR
+- SIGINFO      discard signal       status request from keyboard
+- SIGINT	terminate process	interrupt program
+- SIGINT       P1990      Term    Interrupt from keyboard
+- SIGINT       terminate process    interrupt program
+- SIGIO	discard signal	I/O is possible on a descriptor (see fcntl(2))
+- SIGIO          -        Term    I/O now possible (4.2BSD)
+- SIGIO        discard signal       I/O is possible on a descriptor      (see fcntl(2))
+- SIGIOT         -        Core    IOT trap. A synonym for SIGABRT
+- SIGKILL	terminate process	kill program (cannot be caught or ignored)
+- SIGKILL      P1990      Term    Kill signal
+- SIGKILL      terminate process    kill program
+- SIGLOST        -        Term    File lock lost (unused)
+- SIGPIPE	terminate process	write on a pipe with no reader
+- SIGPIPE      P1990      Term    Broken pipe: write to pipe with no       readers; see pipe(7)
+- SIGPIPE      terminate process    write on a pipe with no reader
+- SIGPOLL      P2001      Term    Pollable event (Sys V);       synonym for SIGIO
+- SIGPROF	terminate process	profiling timer alarm (see setitimer(2))
+- SIGPROF      P2001      Term    Profiling timer expired
+- SIGPROF      terminate process    profiling timer alarm (see      setitimer(2))
+- SIGPWR         -        Term    Power failure (System V)
+- SIGQUIT	create core image	quit program
+- SIGQUIT      create core image    quit program
+- SIGQUIT      P1990      Core    Quit from keyboard
+- SIGSEGV	create core image	segmentation violation
+- SIGSEGV      create core image    segmentation violation
+- SIGSEGV      P1990      Core    Invalid memory reference
+- SIGSTKFLT      -        Term    Stack fault on coprocessor (unused)
+- SIGSTOP	stop process	stop (cannot be caught or ignored)
+- SIGSTOP      P1990      Stop    Stop process
+- SIGSTOP      stop process         stop (cannot be caught or  ignored)
+- SIGSYS	create core image	system call given invalid argument
+- SIGSYS       create core image    non-existent system call invoked
+- SIGSYS       P2001      Core    Bad system call (SVr4);       see also seccomp(2)
+- SIGTERM	terminate process	software termination signal
+- SIGTERM      P1990      Term    Termination signal
+- SIGTERM      terminate process    software termination signal
+- SIGTHR	discard signal	thread AST
+- SIGTRAP	create core image	trace trap
+- SIGTRAP      create core image    trace trap
+- SIGTRAP      P2001      Core    Trace/breakpoint trap
+- SIGTSTP	stop process	stop signal generated from keyboard
+- SIGTSTP      P1990      Stop    Stop typed at terminal
+- SIGTSTP      stop process         stop signal generated from      keyboard
+- SIGTTIN	stop process	background read attempted from controlling terminal
+- SIGTTIN      P1990      Stop    Terminal input for background process
+- SIGTTIN      stop process         background read attempted from      control terminal
+- SIGTTOU	stop process	background write attempted to controlling terminal
+- SIGTTOU      P1990      Stop    Terminal output for background process
+- SIGTTOU      stop process         background write attempted to      control terminal
+- SIGUNUSED      -        Core    Synonymous with SIGSYS
+- SIGURG	discard signal	urgent condition present on socket
+- SIGURG       discard signal       urgent condition present on socket
+- SIGURG       P2001      Ign     Urgent condition on socket (4.2BSD)
+- SIGUSR1	terminate process	user-defined signal 1
+- SIGUSR1      P1990      Term    User-defined signal 1
+- SIGUSR1      terminate process    User defined signal 1
+- SIGUSR2	terminate process	user-defined signal 2
+- SIGUSR2      P1990      Term    User-defined signal 2
+- SIGUSR2      terminate process    User defined signal 2
+- SIGVTALRM	terminate process	virtual time alarm (see setitimer(2))
+- SIGVTALRM    P2001      Term    Virtual alarm clock (4.2BSD)
+- SIGVTALRM    terminate process    virtual time alarm (see      setitimer(2))
+- SIGWINCH	discard signal	window size change
+- SIGWINCH       -        Ign     Window resize signal (4.3BSD, Sun)
+- SIGWINCH     discard signal       Window size change
+- SIGXCPU	terminate process	CPU time limit exceeded (see setrlimit(2))
+- SIGXCPU      P2001      Core    CPU time limit exceeded (4.2BSD);       see setrlimit(2)
+- SIGXCPU      terminate process    cpu time limit exceeded (see      setrlimit(2))
+- SIGXFSZ	terminate process	file size limit exceeded (see setrlimit(2))
+- SIGXFSZ      P2001      Core    File size limit exceeded (4.2BSD);       see setrlimit(2)
+- SIGXFSZ      terminate process    file size limit exceeded (see      setrlimit(2))
