@@ -2,9 +2,10 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
 import { app, Menu, nativeImage, Tray } from "electron";
-import sharp from "sharp";
+import prettyBytes from "pretty-bytes";
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -19,7 +20,7 @@ if (process.platform !== "darwin") {
 }
 
 // Maximum number of bars to show in the chart
-const MAX_BARS = 10;
+const MAX_BARS = 20;
 
 // File where history is stored
 const HISTORY_FILE_NAME = "history.json";
@@ -87,53 +88,91 @@ async function writeHistory({ history }) {
  */
 const abortController = new AbortController();
 
-async function createImageFromSvg(svgString = "<svg></svg>") {
-  const svgBuffer = Buffer.from(svgString);
-  const pngBuffer = await sharp(svgBuffer).png().toBuffer();
+/**
+ * Alternative SVG renderer using resvg-js (Rust-based, high performance)
+ * @param {string} svgString
+ * @returns {Electron.NativeImage}
+ */
+function createImageFromSvg(svgString) {
+  if (!svgString) return nativeImage.createEmpty();
+  const resvg = new Resvg(svgString, {
+    font: {
+      loadSystemFonts: true,
+    },
+  });
+  const pngData = resvg.render();
+  const pngBuffer = pngData.asPng();
   const image = nativeImage.createFromBuffer(pngBuffer);
   return image;
 }
 
+function svgWrapper({ width, height, children }) {
+  return /* html */ `
+<svg 
+  width="${width}" 
+  height="${height}" 
+  viewBox="0 0 ${width} ${height}"
+  xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+>
+  ${children}
+</svg>
+`;
+}
+
 function barSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
   return /* html */ `
-  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" />
+<line 
+  x1="${x1}" 
+  y1="${y1}"
+  x2="${x2}" 
+  y2="${y2}" 
+  shape-rendering="crispEdges"
+  stroke="${stroke}" 
+  stroke-width="${strokeWidth}" 
+  opacity="0.5" 
+/>
 `;
+}
+
+function textSvg({ x, y, children }) {
+  return /* html */ `<text x="${x}" y="${y}" text-anchor="end" alignment-baseline="middle" style="text-align: end;">${children}</text>`;
 }
 
 /**
  * @param {{ history: NetworkDatum[], trayHeight?: number }} param0
  * @returns {Promise<Electron.NativeImage>}
  */
-async function getTrayImage({ history, trayHeight }) {
-  const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
-  const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
+async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
+  const trayHeight = fullTrayHeight * 0.8;
 
   const data = history.slice(-MAX_BARS);
+
+  const totalHeight = trayHeight ?? 30;
+  const totalWidth = totalHeight * 10;
+
+  const halfHeight = totalHeight * 0.5;
+  const halfWidth = totalWidth * 0.5;
 
   /**
    * Get max values for scaling the chart.
    * Use more than what's displayed to prevent big jumps.
    * Make vague assumptions about internet speeds if no data yet.
    */
-  const maxData = history.slice(-MAX_BARS * 3);
-  const maxInput = d3.max(maxData, (d) => d.inputBytes) || 10_000_000;
-  const maxOutput = d3.max(maxData, (d) => d.outputBytes) || 100_000;
+  const maxOutput = d3.max(history, (d) => d.outputBytes) || 100_000;
+  const maxInput = d3.max(history, (d) => d.inputBytes) || 10_000_000;
 
-  const totalHeight = trayHeight ?? 30;
-  const totalWidth = totalHeight;
-  const halfHeight = totalHeight * 0.5;
+  const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
+  const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
 
-  const strokeWidth = totalWidth / MAX_BARS;
+  const strokeWidth = (totalWidth / MAX_BARS) * 0.4;
 
-  const xScale = d3.scalePoint(d3.range(0, MAX_BARS), [totalWidth, 0]);
+  const xScale = d3
+    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, halfWidth])
+    .padding(0.8);
 
   const heightScaleInput = d3.scaleLinear([0, maxInput], [0, halfHeight]);
   const heightScaleOutput = d3.scaleLinear([0, maxOutput], [0, halfHeight]);
-
-  const latest = data.at(-1);
-
-  const latestInputBytes = latest?.inputBytes ?? 0;
-  const latestOutputBytes = latest?.outputBytes ?? 0;
 
   /** @type {string[]} */
   const bars = [];
@@ -178,17 +217,56 @@ async function getTrayImage({ history, trayHeight }) {
     bars.push(inputBar);
   }
 
-  const svgString = /* html */ `
-<svg width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">
-	${bars.join("\n")}
-  <text stroke="black">hahah</text>
-</svg>
-`;
+  const MARGIN = totalWidth * 0.05;
+
+  const textX = halfWidth - MARGIN;
+
+  // const outAvgString = Math.floor(averageOutput).toLocaleString();
+  // const inAvgString = Math.floor(averageInput).toLocaleString();
+
+  // const outMaxString = Math.floor(maxOutput).toLocaleString();
+  // const inMaxString = Math.floor(maxInput).toLocaleString();
+
+  const outAvgString = prettyBytes(averageOutput)
+  const inAvgString = prettyBytes(averageInput);
+
+  const outMaxString = prettyBytes(maxOutput);
+  const inMaxString = prettyBytes(maxInput);
+
+  const pad = 30;
+
+  const outString = `${outAvgString.padStart(pad)} / ${outMaxString.padStart(pad)}`;
+  const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
+
+  const children = [
+    /* html */ `<rect x="50%" y="0" width="50%" height="100%" fill="none" stroke="black" />`,
+    bars.join("\n"),
+    textSvg({
+      children: outString,
+      x: textX,
+      y: "25%",
+    }),
+    textSvg({
+      children: inString,
+      x: textX,
+      y: "75%",
+    }),
+  ].join("\n");
+
+  const svgString = svgWrapper({
+    children,
+    height: totalHeight,
+    width: totalWidth,
+  });
 
   return createImageFromSvg(svgString);
 }
 
 app.whenReady().then(async () => {
+  console.log("App is ready");
+
+  process?.send?.("started");
+
   /**
    * Hide the app from the dock
    */
@@ -232,7 +310,7 @@ app.whenReady().then(async () => {
     writeHistory({ history });
   }, 5_000);
 
-  const child = spawn(`netstat -i -b -w 1`, {
+  const child = spawn(`netstat -I en0 -b -w 1`, {
     shell: true,
     signal: abortController.signal,
   });
@@ -279,14 +357,19 @@ app.whenReady().then(async () => {
       history.shift();
     }
 
-    const image = await getTrayImage({
-      history,
-      trayHeight,
-    });
-    tray.setImage(image);
+    try {
+      const image = await getTrayImage({
+        history,
+        trayHeight,
+      });
+      tray.setImage(image);
+    } catch (error) {
+      console.error("Error generating tray image:", error);
+      app.quit();
+    }
   });
 
-  child.on("error", (error) => {
+  child.on("error", () => {
     // Do nothing
   });
 });
@@ -299,4 +382,14 @@ app.on("window-all-closed", () => {
 // Kill the child process on app quit
 app.on("before-quit", () => {
   abortController.abort("App is quitting");
+});
+
+process.on("SIGINT", () => {
+  abortController?.abort();
+  app.exit();
+});
+
+process.on("SIGTERM", () => {
+  abortController?.abort();
+  app.exit();
 });
