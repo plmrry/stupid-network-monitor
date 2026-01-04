@@ -7,12 +7,13 @@ import { pipeline } from "node:stream/promises";
 console.log(`Fetching big file...`);
 
 const ONE_MEG = 1_000_000;
+const TEN_MEG = 10_000_000;
 const ONE_HUNDRED_MEG = 100_000_000;
 const ONE_GIG = 1_000_000_000;
 
-const NUM_TRIES = 20;
+const NUM_TRIES = 10;
 
-const size = ONE_MEG;
+const size = TEN_MEG;
 
 /**
  * DOWNLOAD
