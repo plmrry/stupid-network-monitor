@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
-import { app, Menu, nativeImage, Tray } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
 import { logSignals } from "./log-signals.mjs";
 
 /**
@@ -267,8 +267,11 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
   return createImageFromSvg(svgString);
 }
 
-app.whenReady().then(async () => {
-  console.log("App is ready");
+/**
+ * Start the network monitoring
+ */
+async function startNetworkMonitoring() {
+  console.log("Starting network monitoring");
 
   /**
    * Hide the app from the dock
@@ -381,6 +384,90 @@ app.whenReady().then(async () => {
 
   child.on("error", () => {
     // Do nothing
+  });
+}
+
+app.whenReady().then(async () => {
+  console.log("App is ready");
+
+  /**
+   * Create a window with a start button
+   */
+  const appWindow = new BrowserWindow({
+    center: true,
+    height: 300,
+    webPreferences: {
+      contextIsolation: false,
+      devTools: true,
+      nodeIntegration: true,
+      sandbox: false,
+      webSecurity: false,
+    },
+    width: 400,
+  });
+
+  const page = /* html */ `
+ <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          padding: 30px 60px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        button {
+          display: inline-block;
+          padding: 20px 40px;
+          font-size: 24px;
+          font-weight: bold;
+          color: white;
+          background: rgba(255, 255, 255, 0.2);
+          border: 3px solid white;
+          border-radius: 15px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          backdrop-filter: blur(10px);
+          text-decoration: none;
+        }
+      </style>
+    </head>
+    <body>
+      <button>Start Network Monitor</button>
+      <script>
+        const electron = require('electron');
+        const button = document.querySelector('button');
+        button.addEventListener('click', () => {
+          electron.ipcRenderer.send('start-monitoring');
+        });
+      </script>
+    </body>
+  </html>  
+`;
+
+  await appWindow.loadURL(
+    `data:text/html;charset=utf-8,${encodeURIComponent(page)}`
+  );
+
+  /**
+   * Handle the start monitoring request from the renderer
+   */
+  ipcMain.on("start-monitoring", async () => {
+    console.log("Start monitoring message received");
+    appWindow.close();
+    await startNetworkMonitoring();
   });
 });
 

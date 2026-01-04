@@ -3,69 +3,29 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 
-let started = false;
-let abortController = new AbortController();
-
 function start() {
-  console.log("Starting");
-
-  started = true;
+  console.log("Starting dev server...");
 
   const child = spawn("pnpm dev", {
+    detached: false,
     shell: true,
-    signal: abortController.signal,
-    stdio: ["inherit", "inherit", "inherit", "ipc"],
+    stdio: "inherit",
   });
 
-  child.on("message", (msg) => {
-    console.log("Message from child:", msg);
-  });
-
-  child.on("error", () => {
-    // process.exit(1);
-  });
-}
-
-start();
-
-async function restart() {
-  console.log("Stopping");
-
-  abortController.abort();
-  abortController = new AbortController();
-
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  start();
+  return child;
 }
 
 const events = fs.watch("./main.mjs");
 
-let lastEvent = Date.now();
+// Start the initial process
+let child = start();
 
 for await (const event of events) {
-  console.log(`Event: ${event.eventType}`);
-  const sinceLast = Date.now() - lastEvent;
-  if (started && sinceLast < 3000) {
-    console.log("Ignoring event, too soon:", sinceLast);
-    continue;
-  }
+  console.log(`\nFile changed (${event.eventType}), restarting...`);
 
-  console.log(`Restarting after ${sinceLast}ms`);
+  // Small delay to ensure cleanup
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
-  restart();
-
-  lastEvent = Date.now();
+  // Start a new process
+  console.log("pid before:", child.pid);
 }
-
-process.on("SIGINT", () => {
-  console.log("SIGINT");
-  abortController?.abort();
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  console.log("SIGTERM");
-  abortController?.abort();
-  process.exit(0);
-});

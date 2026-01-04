@@ -47,7 +47,7 @@ export function logSignals(process, type = "non-exit") {
   }[type];
   for (const signal of signals) {
     process.on(signal, () => {
-      console.log(`wut.mjs got signal: ${signal}`);
+      console.log(`got signal: ${signal}`);
     });
   }
 }
