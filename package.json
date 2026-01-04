@@ -8,15 +8,12 @@
 		"dev": "electron-forge start",
 		"magic": "node magic.mjs",
 		"make-dmg": "electron-forge make",
-		"package": "electron-forge package",
-		"start": "electron-forge start",
+		"package": "electron-forge package --arch arm64 --platform darwin && open ./out",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@resvg/resvg-js": "^2.6.2",
-		"d3": "^7.9.0",
-		"pretty-bytes": "^7.1.0",
-		"sharp": "latest"
+		"@resvg/resvg-js": "latest",
+		"d3": "latest"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",
@@ -27,14 +24,14 @@
 		"@electron-forge/publisher-github": "latest",
 		"@electron-forge/shared-types": "latest",
 		"@electron/fuses": "latest",
-		"@types/d3": "^7.4.3",
+		"@types/d3": "latest",
 		"electron": "latest",
-		"typescript": "latest",
-		"wait-on": "latest"
+		"typescript": "latest"
 	},
-	"packageManager": "pnpm@10.27.0",
+	"packageManager": "pnpm@9.15.9",
 	"engines": {
-		"node": ">=22"
+		"node": "22.x",
+		"pnpm": "9.15.9"
 	},
 	"os": [
 		"darwin"
@@ -57,8 +54,7 @@
 			"electron",
 			"esbuild",
 			"fs-xattr",
-			"macos-alias",
-			"sharp"
+			"macos-alias"
 		]
 	}
 }

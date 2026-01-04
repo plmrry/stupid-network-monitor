@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
 import { app, Menu, nativeImage, Tray } from "electron";
-import prettyBytes from "pretty-bytes";
+import { logSignals } from "./log-signals.mjs";
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -221,19 +221,24 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
 
   const textX = halfWidth - MARGIN;
 
-  // const outAvgString = Math.floor(averageOutput).toLocaleString();
-  // const inAvgString = Math.floor(averageInput).toLocaleString();
+  // Convert bytes/sec to Mbps
+  /**
+   * @param {number} bytes
+   * @returns {string}
+   */
+  const bytesToMbps = (bytes) => {
+    const bits = bytes * 8;
+    const mbps = bits / 1_000_000;
+    return `${mbps.toFixed(1)} Mbps`;
+  };
 
-  // const outMaxString = Math.floor(maxOutput).toLocaleString();
-  // const inMaxString = Math.floor(maxInput).toLocaleString();
+  const outAvgString = bytesToMbps(averageOutput);
+  const inAvgString = bytesToMbps(averageInput);
 
-  const outAvgString = prettyBytes(averageOutput)
-  const inAvgString = prettyBytes(averageInput);
+  const outMaxString = bytesToMbps(maxOutput);
+  const inMaxString = bytesToMbps(maxInput);
 
-  const outMaxString = prettyBytes(maxOutput);
-  const inMaxString = prettyBytes(maxInput);
-
-  const pad = 30;
+  const pad = 15;
 
   const outString = `${outAvgString.padStart(pad)} / ${outMaxString.padStart(pad)}`;
   const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
@@ -265,8 +270,6 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
 app.whenReady().then(async () => {
   console.log("App is ready");
 
-  process?.send?.("started");
-
   /**
    * Hide the app from the dock
    */
@@ -296,7 +299,14 @@ app.whenReady().then(async () => {
       label: "Quit",
     },
   ]);
+
+  /**
+   * Show context menu on left-click as well
+   */
   tray.setContextMenu(contextMenu);
+  tray.on("click", () => {
+    tray.popUpContextMenu(contextMenu);
+  });
 
   /**
    * See if we have existing history to load.
@@ -384,12 +394,4 @@ app.on("before-quit", () => {
   abortController.abort("App is quitting");
 });
 
-process.on("SIGINT", () => {
-  abortController?.abort();
-  app.exit();
-});
-
-process.on("SIGTERM", () => {
-  abortController?.abort();
-  app.exit();
-});
+logSignals(process, "non-exit");

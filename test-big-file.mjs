@@ -10,9 +10,9 @@ const ONE_MEG = 1_000_000;
 const ONE_HUNDRED_MEG = 100_000_000;
 const ONE_GIG = 1_000_000_000;
 
-const NUM_TRIES = 5;
+const NUM_TRIES = 20;
 
-const size = ONE_HUNDRED_MEG;
+const size = ONE_MEG;
 
 /**
  * DOWNLOAD
@@ -47,29 +47,32 @@ for (const _tryNum of Array(NUM_TRIES).keys()) {
   console.log(`Fetching big file... Done.`);
 }
 
-console.log(`Uploading file...`);
+console.log(`Uploading big files...`);
 
-const uploadUrl = new URL(`https://speed.cloudflare.com/__up`);
-uploadUrl.searchParams.append("rand", Math.random().toString());
+/**
+ * DOWNLOAD
+ */
+for (const _tryNum of Array(NUM_TRIES).keys()) {
+  const uploadUrl = new URL(`https://speed.cloudflare.com/__up`);
+  uploadUrl.searchParams.append("rand", Math.random().toString());
 
-console.log("Uploading...", uploadUrl.toString());
+  // Upload using fetch with file stream
+  const fileStream = createReadStream("/tmp/text.txt");
 
-// Upload using fetch with file stream
-const fileStream = createReadStream("/tmp/text.txt");
+  const uploadResponse = await fetch(uploadUrl.toString(), {
+    // @ts-ignore
+    body: Readable.toWeb(fileStream),
+    duplex: "half",
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    method: "POST",
+  });
 
-const uploadResponse = await fetch(uploadUrl.toString(), {
-  // @ts-ignore
-  body: Readable.toWeb(fileStream),
-  duplex: "half",
-  headers: {
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-  },
-  method: "POST",
-});
+  if (!uploadResponse.ok) {
+    throw new Error(`HTTP error! status: ${uploadResponse.status}`);
+  }
 
-if (!uploadResponse.ok) {
-  throw new Error(`HTTP error! status: ${uploadResponse.status}`);
+  console.log(`Uploading file... Done.`);
 }
-
-console.log(`Uploading file... Done.`);

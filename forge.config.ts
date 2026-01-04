@@ -15,13 +15,17 @@ const config: ForgeConfig = {
 	packagerConfig: {
 		appBundleId: "com.paulmurray.network-chart",
 		// Enable asar for production packaging (required by Fuses)
-		// Unpack Sharp and @img native modules to avoid loading issues
-		asar: {
-			unpack: "**/node_modules/{sharp,@img}/**/*",
-		},
+		asar: true,
 		// Enable code signing with Developer ID Application certificate
 		osxSign: {
-			identity: "Developer ID Application: Paul Murray",
+			identity: "Developer ID Application: Paul Murray (2XZDV55R72)",
+			optionsForFile: (_filePath) => {
+				return {
+					entitlements: "entitlements.mac.plist",
+					hardenedRuntime: false,
+					signatureFlags: "library",
+				};
+			},
 		},
 	},
 	plugins: [
