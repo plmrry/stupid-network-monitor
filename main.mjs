@@ -4,7 +4,15 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  nativeImage,
+  nativeTheme,
+  Tray,
+} from "electron";
 import { logSignals } from "./log-signals.mjs";
 
 /**
@@ -21,6 +29,8 @@ if (process.platform !== "darwin") {
 
 // Maximum number of bars to show in the chart
 const MAX_BARS = 20;
+const TEXT_WIDTH = 5;
+const CHART_WIDTH = 2;
 
 // File where history is stored
 const HISTORY_FILE_NAME = "history.json";
@@ -120,7 +130,11 @@ function svgWrapper({ width, height, children }) {
 `;
 }
 
-function barSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
+/**
+ * @param {{ x1: number | string, y1: number | string, x2: number | string, y2: number | string, stroke: string, strokeWidth: number }} param0
+ * @returns {string}
+ */
+function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
   return /* html */ `
 <line 
   x1="${x1}" 
@@ -135,24 +149,39 @@ function barSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
 `;
 }
 
-function textSvg({ x, y, children }) {
-  return /* html */ `<text x="${x}" y="${y}" text-anchor="end" alignment-baseline="middle" style="text-align: end;">${children}</text>`;
+/**
+ * @param {{ x: number | string, y: number | string, children: string, color: string }} param0
+ * @returns {string}
+ */
+function textSvg({ x, y, children, color }) {
+  return /* html */ `
+<text 
+  x="${x}" 
+  y="${y}" 
+  text-anchor="end" 
+  alignment-baseline="middle" 
+  fill="${color}"
+  style="text-align: end; fill: ${color};"
+>
+  ${children}
+</text>`;
 }
 
 /**
- * @param {{ history: NetworkDatum[], trayHeight?: number }} param0
+ * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} param0
  * @returns {Promise<Electron.NativeImage>}
  */
-async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
+async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const trayHeight = fullTrayHeight * 0.8;
 
   const data = history.slice(-MAX_BARS);
 
   const totalHeight = trayHeight ?? 30;
-  const totalWidth = totalHeight * 10;
+  const textWidth = trayHeight * TEXT_WIDTH;
+  const chartWidth = trayHeight * CHART_WIDTH;
+  const totalWidth = textWidth + chartWidth;
 
   const halfHeight = totalHeight * 0.5;
-  const halfWidth = totalWidth * 0.5;
 
   /**
    * Get max values for scaling the chart.
@@ -168,7 +197,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
   const strokeWidth = (totalWidth / MAX_BARS) * 0.4;
 
   const xScale = d3
-    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, halfWidth])
+    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textWidth])
     .padding(0.8);
 
   const heightScaleInput = d3.scaleLinear([0, maxInput], [0, halfHeight]);
@@ -195,8 +224,8 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
     const inputY1 = halfHeight;
     const inputY2 = halfHeight + inputHeight;
 
-    const outputBar = barSvg({
-      stroke: "red",
+    const outputBar = lineSvg({
+      stroke: color,
       strokeWidth,
       x1: x,
       x2: x,
@@ -204,8 +233,8 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
       y2: outputY2,
     });
 
-    const inputBar = barSvg({
-      stroke: "blue",
+    const inputBar = lineSvg({
+      stroke: color,
       strokeWidth,
       x1: x,
       x2: x,
@@ -219,7 +248,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
 
   const MARGIN = totalWidth * 0.05;
 
-  const textX = halfWidth - MARGIN;
+  const textX = textWidth - MARGIN;
 
   // Convert bytes/sec to Mbps
   /**
@@ -244,15 +273,19 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight }) {
   const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
 
   const children = [
-    /* html */ `<rect x="50%" y="0" width="50%" height="100%" fill="none" stroke="black" />`,
+    // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
+    // /* html */ `<rect x="0" y="0" width="${textWidth}" height="100%" fill="none" stroke="${color}" />`,
+    // /* html */ `<rect x="${textWidth}" y="0" width="${chartWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
     textSvg({
       children: outString,
+      color,
       x: textX,
       y: "25%",
     }),
     textSvg({
       children: inString,
+      color,
       x: textX,
       y: "75%",
     }),
@@ -371,7 +404,9 @@ async function startNetworkMonitoring() {
     }
 
     try {
+      const color = nativeTheme.shouldUseDarkColors ? "white" : "black";
       const image = await getTrayImage({
+        color,
         history,
         trayHeight,
       });
