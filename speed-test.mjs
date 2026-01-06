@@ -7,8 +7,8 @@ import { pipeline } from "node:stream/promises";
 const SPEEDTEST_URL = `https://paulmurray.lol/api/speedtest`;
 const url = new URL(SPEEDTEST_URL);
 
-const DOWNLOAD_COUNT = 5;
-const UPLOAD_COUNT = 1;
+const DOWNLOAD_COUNT = 10;
+const UPLOAD_COUNT = DOWNLOAD_COUNT * 0.5;
 
 /** @returns {string} */
 function getRandom() {

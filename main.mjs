@@ -19,11 +19,6 @@ if (process.platform !== "darwin") {
   app.quit();
 }
 
-// Maximum number of bars to show in the chart
-const MAX_BARS = 20;
-const TEXT_WIDTH = 5;
-const CHART_WIDTH = 2;
-
 // File where history is stored
 const HISTORY_FILE_NAME = "history.json";
 
@@ -146,16 +141,17 @@ function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
 }
 
 /**
- * @param {{ x: number | string, y: number | string, children: string, color: string }} options
+ * @param {{ x: number | string, y: number | string, children: string, color: string, fontSize: number }} options
  * @returns {string}
  */
-function textSvg({ x, y, children, color }) {
+function textSvg({ children, color, fontSize, x, y }) {
   return /* html */ `
 <text 
   alignment-baseline="middle" 
   fill="${color}"
-  font-size="9"
+  font-size="${fontSize}"
   text-anchor="end" 
+  text-rendering="optimizeLegibility"
   x="${x}" 
   y="${y}" 
 >
@@ -163,19 +159,28 @@ function textSvg({ x, y, children, color }) {
 </text>`;
 }
 
+const MAX_BARS = 20;
+const CHART_WIDTH = 2;
+const TEXT_WIDTH = 12;
+const FONT_SIZE = 0.3;
+
 /**
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {Promise<Electron.NativeImage>}
  */
 async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
-  const trayHeight = fullTrayHeight * 0.8;
+  const trayHeight = Math.floor(fullTrayHeight * 0.8);
 
   const data = history.slice(-MAX_BARS);
 
   const totalHeight = trayHeight ?? 30;
-  const textWidth = trayHeight * TEXT_WIDTH;
-  const chartWidth = trayHeight * CHART_WIDTH;
-  const totalWidth = textWidth + chartWidth;
+  const fontSize = totalHeight * FONT_SIZE;
+
+  const textBoxWidth = Math.floor(fontSize * TEXT_WIDTH);
+
+  const chartBoxWidth = Math.floor(trayHeight * CHART_WIDTH);
+
+  const totalWidth = Math.floor(textBoxWidth + chartBoxWidth);
 
   const halfHeight = totalHeight * 0.5;
 
@@ -193,7 +198,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const strokeWidth = (totalWidth / MAX_BARS) * 0.4;
 
   const xScale = d3
-    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textWidth])
+    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textBoxWidth])
     .padding(0.8);
 
   const heightScaleInput = d3.scaleLinear([0, maxInput], [0, halfHeight]);
@@ -244,7 +249,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
 
   const MARGIN = totalWidth * 0.05;
 
-  const textX = textWidth - MARGIN;
+  const textX = textBoxWidth - MARGIN;
 
   // Convert bytes/sec to Mbps
   /**
@@ -269,19 +274,21 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
 
   const children = [
-    /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
-    /* html */ `<rect x="0" y="0" width="${textWidth}" height="100%" fill="none" stroke="${color}" />`,
-    /* html */ `<rect x="${textWidth}" y="0" width="${chartWidth}" height="100%" fill="none" stroke="${color}" />`,
+    // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
+    // /* html */ `<rect x="0" y="0" width="${textBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
+    // /* html */ `<rect x="${textBoxWidth}" y="0" width="${chartBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
     textSvg({
       children: outString,
       color,
+      fontSize,
       x: textX,
       y: "30%",
     }),
     textSvg({
       children: inString,
       color,
+      fontSize,
       x: textX,
       y: "70%",
     }),
@@ -342,14 +349,6 @@ async function startNetworkMonitoring() {
    * See if we have existing history to load.
    */
   const history = (await readHistory()) ?? emptyHistory;
-
-  /**
-   * Every 20 seconds: write history to disk
-   */
-  setInterval(async () => {
-    writeHistory({ history });
-    await speedTest();
-  }, 20_000);
 
   const netstatCommand = `netstat -I en0 -b -w 1`;
 
@@ -417,6 +416,16 @@ async function startNetworkMonitoring() {
   child.on("error", () => {
     app.exit(0);
   });
+
+  /**
+   * Every `MAX_BARS` seconds:
+   * - Write history to disk
+   * - Run a speed test
+   */
+  setInterval(async () => {
+    writeHistory({ history });
+    await speedTest();
+  }, MAX_BARS * 1e3);
 
   await speedTest();
 }
