@@ -4,16 +4,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  Menu,
-  nativeImage,
-  nativeTheme,
-  Tray,
-} from "electron";
-import { logSignals } from "./log-signals.mjs";
+import { app, Menu, nativeImage, nativeTheme, Tray } from "electron";
+import { speedTest } from "./speed-test.mjs";
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -116,6 +108,10 @@ function createImageFromSvg(svgString) {
   return image;
 }
 
+/**
+ * @param {{ width: number | string, height: number | string, children: string }} options
+ * @returns {string}
+ */
 function svgWrapper({ width, height, children }) {
   return /* html */ `
 <svg 
@@ -131,7 +127,7 @@ function svgWrapper({ width, height, children }) {
 }
 
 /**
- * @param {{ x1: number | string, y1: number | string, x2: number | string, y2: number | string, stroke: string, strokeWidth: number }} param0
+ * @param {{ x1: number | string, y1: number | string, x2: number | string, y2: number | string, stroke: string, strokeWidth: number }} options
  * @returns {string}
  */
 function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
@@ -150,25 +146,25 @@ function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
 }
 
 /**
- * @param {{ x: number | string, y: number | string, children: string, color: string }} param0
+ * @param {{ x: number | string, y: number | string, children: string, color: string }} options
  * @returns {string}
  */
 function textSvg({ x, y, children, color }) {
   return /* html */ `
 <text 
-  x="${x}" 
-  y="${y}" 
-  text-anchor="end" 
   alignment-baseline="middle" 
   fill="${color}"
-  style="text-align: end; fill: ${color};"
+  font-size="9"
+  text-anchor="end" 
+  x="${x}" 
+  y="${y}" 
 >
   ${children}
 </text>`;
 }
 
 /**
- * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} param0
+ * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {Promise<Electron.NativeImage>}
  */
 async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
@@ -273,21 +269,21 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
 
   const children = [
-    // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="0" y="0" width="${textWidth}" height="100%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="${textWidth}" y="0" width="${chartWidth}" height="100%" fill="none" stroke="${color}" />`,
+    /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
+    /* html */ `<rect x="0" y="0" width="${textWidth}" height="100%" fill="none" stroke="${color}" />`,
+    /* html */ `<rect x="${textWidth}" y="0" width="${chartWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
     textSvg({
       children: outString,
       color,
       x: textX,
-      y: "25%",
+      y: "30%",
     }),
     textSvg({
       children: inString,
       color,
       x: textX,
-      y: "75%",
+      y: "70%",
     }),
   ].join("\n");
 
@@ -304,8 +300,6 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
  * Start the network monitoring
  */
 async function startNetworkMonitoring() {
-  console.log("Starting network monitoring");
-
   /**
    * Hide the app from the dock
    */
@@ -350,13 +344,16 @@ async function startNetworkMonitoring() {
   const history = (await readHistory()) ?? emptyHistory;
 
   /**
-   * Write history to disk every five seconds.
+   * Every 20 seconds: write history to disk
    */
-  setInterval(() => {
+  setInterval(async () => {
     writeHistory({ history });
-  }, 5_000);
+    await speedTest();
+  }, 20_000);
 
-  const child = spawn(`netstat -I en0 -b -w 1`, {
+  const netstatCommand = `netstat -I en0 -b -w 1`;
+
+  const child = spawn(netstatCommand, {
     shell: true,
     signal: abortController.signal,
   });
@@ -418,92 +415,15 @@ async function startNetworkMonitoring() {
   });
 
   child.on("error", () => {
-    // Do nothing
+    app.exit(0);
   });
+
+  await speedTest();
 }
 
 app.whenReady().then(async () => {
   console.log("App is ready");
-
-  /**
-   * Create a window with a start button
-   */
-  const appWindow = new BrowserWindow({
-    center: true,
-    height: 300,
-    webPreferences: {
-      contextIsolation: false,
-      devTools: true,
-      nodeIntegration: true,
-      sandbox: false,
-      webSecurity: false,
-    },
-    width: 400,
-  });
-
-  const page = /* html */ `
- <!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        body {
-          padding: 30px 60px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        button {
-          display: inline-block;
-          padding: 20px 40px;
-          font-size: 24px;
-          font-weight: bold;
-          color: white;
-          background: rgba(255, 255, 255, 0.2);
-          border: 3px solid white;
-          border-radius: 15px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          backdrop-filter: blur(10px);
-          text-decoration: none;
-        }
-      </style>
-    </head>
-    <body>
-      <button>Start Network Monitor</button>
-      <script>
-        const electron = require('electron');
-        const button = document.querySelector('button');
-        button.addEventListener('click', () => {
-          electron.ipcRenderer.send('start-monitoring');
-        });
-      </script>
-    </body>
-  </html>  
-`;
-
-  await appWindow.loadURL(
-    `data:text/html;charset=utf-8,${encodeURIComponent(page)}`
-  );
-
-  /**
-   * Handle the start monitoring request from the renderer
-   */
-  ipcMain.on("start-monitoring", async () => {
-    console.log("Start monitoring message received");
-    appWindow.close();
-    await startNetworkMonitoring();
-  });
+  await startNetworkMonitoring();
 });
 
 // Don't quit when all windows are closed - keep running in menu bar
@@ -515,5 +435,3 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   abortController.abort("App is quitting");
 });
-
-logSignals(process, "non-exit");

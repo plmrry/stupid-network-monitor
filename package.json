@@ -25,6 +25,8 @@
 		"@electron-forge/shared-types": "latest",
 		"@electron/fuses": "latest",
 		"@types/d3": "latest",
+		"@types/node": "^25.0.3",
+		"@typescript/native-preview": "latest",
 		"electron": "latest",
 		"typescript": "latest"
 	},
