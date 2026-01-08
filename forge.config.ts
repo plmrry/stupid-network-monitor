@@ -16,7 +16,6 @@ const config: ForgeConfig = {
 		{
 			config: {
 				format: "ULFO",
-				icon: "./app-icon/icon.icns",
 			},
 			name: "@electron-forge/maker-dmg",
 		},
@@ -25,7 +24,7 @@ const config: ForgeConfig = {
 		appBundleId: "com.paulmurray.stupid-network-monitor.app",
 		// Enable asar for production packaging (required by Fuses)
 		asar: true,
-		icon: "./app-icon/icon.icns",
+		icon: "./app-icon/icon",
 		name: "Stupid Network Monitor",
 		// Enable code signing with Developer ID Application certificate
 		osxSign: {

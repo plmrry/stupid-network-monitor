@@ -10,7 +10,8 @@
 		"magic": "node scripts/magic.mjs",
 		"make-dmg": "electron-forge make",
 		"move-output": "node scripts/move-output.mjs",
-		"package": "electron-forge package --arch arm64 --platform darwin && open ./out && pnpm move-output",
+		"package": "pnpm generate-icon &&pnpm package-only && open ./out && pnpm move-output",
+		"package-only": "electron-forge package --arch arm64 --platform darwin",
 		"generate-icon": "node scripts/generate-icon.mjs",
 		"typecheck": "tsc --noEmit"
 	},
