@@ -1,14 +1,16 @@
 {
-	"name": "stupid-network-chart",
+	"name": "stupid-network-monitor",
 	"version": "1.0.0",
-	"description": "Uses Electron to put a stupid network activity chart in the macOS menu bar.",
+	"description": "Uses Electron to put a stupid network activity monitor in the macOS menu bar.",
 	"license": "CC0-1.0",
 	"main": "main.mjs",
 	"scripts": {
 		"dev": "electron-forge start",
+		"get-identities": "security find-identity -v -p codesigning",
 		"magic": "node magic.mjs",
 		"make-dmg": "electron-forge make",
 		"package": "electron-forge package --arch arm64 --platform darwin && open ./out",
+		"generate-icon": "node scripts/generate-icon.mjs",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -25,9 +27,10 @@
 		"@electron-forge/shared-types": "latest",
 		"@electron/fuses": "latest",
 		"@types/d3": "latest",
-		"@types/node": "^25.0.3",
+		"@types/node": "^22",
 		"@typescript/native-preview": "latest",
 		"electron": "latest",
+		"sharp": "latest",
 		"typescript": "latest"
 	},
 	"packageManager": "pnpm@9.15.9",
@@ -39,7 +42,7 @@
 		"darwin"
 	],
 	"build": {
-		"appId": "com.paulmurray.stupid-network-chart.app",
+		"appId": "com.paulmurray.stupid-network-monitor.app",
 		"files": [
 			"main.mjs"
 		],
@@ -49,7 +52,7 @@
 				"dmg"
 			]
 		},
-		"productName": "Stupid Network Chart in Menu Bar"
+		"productName": "Stupid Network Monitor"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

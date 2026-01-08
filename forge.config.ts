@@ -1,25 +1,34 @@
-// @ts-ignore
+// @ts-check
+
+// @ts-ignore — Missing types
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import { getCodeSigningIdentity } from "./scripts/get-code-signing-identity.mjs";
+
+// Get code signing identities
+const identity = await getCodeSigningIdentity();
 
 const config: ForgeConfig = {
 	makers: [
 		{
 			config: {
 				format: "ULFO",
+				icon: "./app-icon/icon.icns",
 			},
 			name: "@electron-forge/maker-dmg",
 		},
 	],
 	packagerConfig: {
-		appBundleId: "com.paulmurray.network-chart",
+		appBundleId: "com.paulmurray.stupid-network-monitor.app",
 		// Enable asar for production packaging (required by Fuses)
 		asar: true,
+		icon: "./app-icon/icon.icns",
+		name: "Stupid Network Monitor",
 		// Enable code signing with Developer ID Application certificate
 		osxSign: {
-			identity: "Developer ID Application: Paul Murray (2XZDV55R72)",
+			identity,
 			optionsForFile: (filePath) => {
 				// Base options for all files
 				const options: {
@@ -31,7 +40,7 @@ const config: ForgeConfig = {
 				};
 
 				// Only add entitlements for the main executable
-				if (filePath.includes("stupid-network-chart.app/Contents/MacOS/")) {
+				if (filePath.includes("Stupid Network Monitor.app/Contents/MacOS/")) {
 					options.entitlements = "entitlements.mac.plist";
 				}
 
@@ -66,7 +75,7 @@ const config: ForgeConfig = {
 				draft: true,
 				prerelease: false,
 				repository: {
-					name: "electron-network-chart",
+					name: "stupid-network-monitor",
 					owner: "plmrry",
 				},
 			},
