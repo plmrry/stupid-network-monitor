@@ -9,6 +9,7 @@ import { getCodeSigningIdentity } from "./scripts/get-code-signing-identity.mjs"
 
 // Get code signing identities
 const identity = await getCodeSigningIdentity();
+console.log("Using code signing identity:", identity);
 
 const config: ForgeConfig = {
 	makers: [

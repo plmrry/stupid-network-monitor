@@ -7,9 +7,10 @@
 	"scripts": {
 		"dev": "electron-forge start",
 		"get-identities": "security find-identity -v -p codesigning",
-		"magic": "node magic.mjs",
+		"magic": "node scripts/magic.mjs",
 		"make-dmg": "electron-forge make",
-		"package": "electron-forge package --arch arm64 --platform darwin && open ./out",
+		"move-output": "node scripts/move-output.mjs",
+		"package": "electron-forge package --arch arm64 --platform darwin && open ./out && pnpm move-output",
 		"generate-icon": "node scripts/generate-icon.mjs",
 		"typecheck": "tsc --noEmit"
 	},

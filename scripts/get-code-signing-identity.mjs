@@ -11,8 +11,6 @@ export async function getCodeSigningIdentity() {
     if (!groups) continue;
     const { name } = groups;
     if (/Developer ID Application/.test(name)) {
-      console.log(`Found code signing identity: ${name}`);
-      console.error(`Found code signing identity: ${name}`);
       return name;
     }
   }
