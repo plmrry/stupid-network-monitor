@@ -6,13 +6,16 @@
 	"main": "main.mjs",
 	"scripts": {
 		"dev": "electron-forge start",
+		"generate-icon": "node scripts/generate-icon.mjs",
 		"get-identities": "security find-identity -v -p codesigning",
 		"magic": "node scripts/magic.mjs",
+		"make": "electron-forge make",
 		"make-dmg": "electron-forge make",
 		"move-output": "node scripts/move-output.mjs",
 		"package": "pnpm generate-icon &&pnpm package-only && open ./out && pnpm move-output",
 		"package-only": "electron-forge package --arch arm64 --platform darwin",
-		"generate-icon": "node scripts/generate-icon.mjs",
+		"publish": "electron-forge package --arch arm64 --platform darwin",
+		"publish-dry-run": "electron-forge publish -- --from-dry-run",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
