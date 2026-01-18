@@ -12,7 +12,7 @@
 		"make": "electron-forge make",
 		"make-dmg": "electron-forge make",
 		"move-output": "node scripts/move-output.mjs",
-		"package": "pnpm generate-icon &&pnpm package-only && open ./out && pnpm move-output",
+		"package": "pnpm generate-icon && pnpm package-only && open ./out && pnpm move-output",
 		"package-only": "electron-forge package --arch arm64 --platform darwin",
 		"publish": "electron-forge package --arch arm64 --platform darwin",
 		"publish-dry-run": "electron-forge publish -- --from-dry-run",
