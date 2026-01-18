@@ -335,6 +335,11 @@ async function startNetworkMonitoring() {
       },
       label: "Quit",
     },
+    { type: "separator" },
+    {
+      enabled: false,
+      label: `v${app.getVersion()}`,
+    },
   ]);
 
   /**

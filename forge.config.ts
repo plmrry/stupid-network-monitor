@@ -66,6 +66,13 @@ const config: ForgeConfig = {
 				shell: true,
 				stdio: "inherit",
 			});
+
+			console.log(`Opening ${appName}...`);
+
+			execFileSync(`open "${destinationPath}"`, {
+				shell: true,
+				stdio: "inherit",
+			});
 		},
 		prePackage: async (config: ForgeConfig) => {
 			const appName = config.packagerConfig?.name;
@@ -73,7 +80,7 @@ const config: ForgeConfig = {
 				throw new Error("App name is not defined in packagerConfig");
 			}
 
-			console.log(`Attempting to quit App: ${appName}`);
+			console.log(`Attempting to quit ${appName}...`);
 			try {
 				const command = `pkill "${appName}"`;
 				execFileSync(command, {
@@ -83,6 +90,8 @@ const config: ForgeConfig = {
 			} catch {}
 
 			try {
+				const foo = config.outDir;
+				console.log("foo:", foo);
 				const outDir = await stat(path.join(currentDir, "out"));
 				console.log(`"./out" directory exists: ${outDir.isDirectory()}`);
 				if (outDir) {
