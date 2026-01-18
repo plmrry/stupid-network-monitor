@@ -1,21 +1,15 @@
 {
 	"name": "stupid-network-monitor",
-	"version": "1.0.0",
+	"version": "2026.01.18",
 	"description": "Uses Electron to put a stupid network activity monitor in the macOS menu bar.",
 	"license": "CC0-1.0",
 	"main": "main.mjs",
 	"scripts": {
 		"dev": "electron-forge start",
-		"generate-icon": "node scripts/generate-icon.mjs",
-		"get-identities": "security find-identity -v -p codesigning",
 		"magic": "node scripts/magic.mjs",
 		"make": "electron-forge make",
-		"make-dmg": "electron-forge make",
-		"move-output": "node scripts/move-output.mjs",
-		"package": "pnpm generate-icon && pnpm package-only && open ./out && pnpm move-output",
-		"package-only": "electron-forge package --arch arm64 --platform darwin",
-		"publish": "electron-forge package --arch arm64 --platform darwin",
-		"publish-dry-run": "electron-forge publish -- --from-dry-run",
+		"package": "node scripts/package.mjs",
+		"publish": "electron-forge publish",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -32,7 +26,7 @@
 		"@electron-forge/shared-types": "latest",
 		"@electron/fuses": "latest",
 		"@types/d3": "latest",
-		"@types/node": "^22",
+		"@types/node": "^22.19.7",
 		"@typescript/native-preview": "latest",
 		"electron": "latest",
 		"sharp": "latest",
