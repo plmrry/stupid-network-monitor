@@ -1,6 +1,6 @@
 {
 	"name": "stupid-network-monitor",
-	"version": "2026.01.18",
+	"version": "2026.01.18.2",
 	"description": "Uses Electron to put a stupid network activity monitor in the macOS menu bar.",
 	"license": "CC0-1.0",
 	"main": "src/main.mjs",

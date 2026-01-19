@@ -184,9 +184,7 @@ const config: ForgeConfig = {
 			name: "@electron-forge/publisher-github",
 		},
 	],
-	rebuildConfig: {
-		force: true,
-	},
+	rebuildConfig: {},
 };
 
 export default config;

@@ -22,6 +22,6 @@
     "biome.json",
     "forge.config.ts",
     "src/main.mjs",
-    "src/*.mjs"
+    "src/speed-test.mjs"
   ]
 }

@@ -14,16 +14,13 @@ import { speedTest } from "./speed-test.mjs";
  */
 
 // Only run on macOS
-if (process.platform !== "darwin") {
-  console.error("This application only runs on macOS");
-  app.quit();
-}
+if (process.platform !== "darwin") app.quit();
 
 // File where history is stored
 const HISTORY_FILE_NAME = "history.json";
 
 // Stable UUID for tray icon position persistence between relaunches
-const TRAY_GUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
 
 /**
  * Store five minutes of history, at 1 second intervals.
@@ -432,7 +429,8 @@ async function startNetworkMonitoring() {
     await speedTest();
   }, MAX_BARS * 1e3);
 
-  await speedTest();
+  // Run speed test in background, don't block startup
+  speedTest();
 }
 
 app.whenReady().then(async () => {
