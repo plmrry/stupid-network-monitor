@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
-import { app, Menu, nativeImage, nativeTheme, Tray } from "electron";
+import { app, Menu, nativeImage, Tray } from "electron";
 import { speedTest } from "./speed-test.mjs";
 
 /**
@@ -402,12 +402,13 @@ async function startNetworkMonitoring() {
     }
 
     try {
-      const color = nativeTheme.shouldUseDarkColors ? "white" : "black";
+      const color = "black";
       const image = await getTrayImage({
         color,
         history,
         trayHeight,
       });
+      image.setTemplateImage(true);
       tray.setImage(image);
     } catch (error) {
       console.error("Error generating tray image:", error);
