@@ -10,6 +10,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@resvg/resvg-js": "latest",
 		"@resvg/resvg-wasm": "latest",
 		"d3": "latest"
 	},
