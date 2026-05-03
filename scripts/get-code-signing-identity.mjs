@@ -1,5 +1,16 @@
 // @ts-check
 
+/**
+ * NOTE:
+ * - XCode
+ * - Preferences
+ * - Accounts
+ * - Manage Certificates
+ * - Developer ID Application
+ * 
+ * Then run this `security find-identity -p codesigning -v`
+ */
+
 import { execFileSync } from "node:child_process";
 
 export async function getCodeSigningIdentity() {
