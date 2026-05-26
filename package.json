@@ -5,7 +5,8 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "stupid-network-monitor:dev": "pnpm --filter stupid-network-monitor dev"
+    "stupid-network-monitor:dev": "pnpm --filter stupid-network-monitor dev",
+    "stupid-network-monitor:package": "pnpm --filter stupid-network-monitor package"
   },
   "devDependencies": {
     "@typescript/native-preview": "7.0.0-dev.20260525.1",
