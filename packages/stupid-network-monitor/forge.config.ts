@@ -127,6 +127,9 @@ const config: ForgeConfig = {
 		extraResource: ["./assets/GeistPixel-Grid.ttf"],
 		icon: "./app-icons/icon",
 		name: "Stupid Network Monitor",
+		// The package script stages a minimal bundled app. Disable pruning so
+		// Electron Packager does not walk pnpm's logical symlink paths.
+		prune: false,
 
 		// Enable code signing with Developer ID Application certificate
 		osxSign: {

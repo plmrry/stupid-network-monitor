@@ -103,10 +103,10 @@ const abortController = new AbortController();
 /**
  * Alternative SVG renderer using resvg-wasm (Rust-based, high performance)
  * @param {string} svgString
- * @returns {Electron.NativeImage}
+ * @returns {Buffer}
  */
-function createImageFromSvg(svgString) {
-  if (!svgString) return nativeImage.createEmpty();
+function createPngBufferFromSvg(svgString) {
+  if (!svgString) return Buffer.alloc(0);
   if (!resvgWasmInitialized) {
     throw new Error("resvg-wasm has not been initialized");
   }
@@ -117,8 +117,7 @@ function createImageFromSvg(svgString) {
   });
   const pngData = resvg.render();
   const pngBuffer = Buffer.from(pngData.asPng());
-  const image = nativeImage.createFromBuffer(pngBuffer);
-  return image;
+  return pngBuffer;
 }
 
 /**
@@ -186,7 +185,7 @@ function getTrayTitle({ history }) {
 
 /**
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
- * @returns {Promise<Electron.NativeImage>}
+ * @returns {Promise<Buffer>}
  */
 async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const trayHeight =
@@ -272,7 +271,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     width: totalWidth,
   });
 
-  return createImageFromSvg(svgString);
+  return createPngBufferFromSvg(svgString);
 }
 
 /**
@@ -378,11 +377,12 @@ async function startNetworkMonitoring() {
 
     try {
       const color = "black";
-      const image = await getTrayImage({
+      const pngBuffer = await getTrayImage({
         color,
         history,
         trayHeight,
       });
+      const image = nativeImage.createFromBuffer(pngBuffer);
       image.setTemplateImage(true);
       tray.setImage(image);
       tray.setTitle(getTrayTitle({ history }), {

@@ -1,16 +1,26 @@
 {
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=11.3.0"
+  },
   "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
     "electron:dev": "pnpm stupid-network-monitor:dev",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
+    "package": "turbo run package",
     "stupid-network-monitor:dev": "pnpm --filter stupid-network-monitor dev",
-    "stupid-network-monitor:package": "pnpm --filter stupid-network-monitor package"
+    "stupid-network-monitor:package": "pnpm --filter stupid-network-monitor package",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "@typescript/native-preview": "7.0.0-dev.20260525.1",
     "oxfmt": "^0.51.0",
-    "oxlint": "^1.66.0"
+    "oxlint": "^1.66.0",
+    "turbo": "^2.9.14"
   }
 }
