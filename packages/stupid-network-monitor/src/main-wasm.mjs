@@ -158,47 +158,46 @@ function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
 `;
 }
 
-/**
- * @param {{ x: number | string, y: number | string, children: string, color: string, fontSize: number }} options
- * @returns {string}
- */
-function textSvg({ children, color, fontSize, x, y }) {
-  return /* html */ `
-<text 
-  alignment-baseline="middle" 
-  fill="${color}"
-  font-size="${fontSize}"
-  text-anchor="end" 
-  text-rendering="optimizeLegibility"
-  x="${x}" 
-  y="${y}" 
->
-  ${children}
-</text>`;
-}
-
 const MAX_BARS = 20;
 const CHART_WIDTH = 2;
-const TEXT_WIDTH = 12;
-const FONT_SIZE = 0.3;
+
+/**
+ * Convert bytes/sec to Mbps.
+ *
+ * @param {number} bytes
+ * @returns {string}
+ */
+function bytesToMbps(bytes) {
+  const bits = bytes * 8;
+  const mbps = bits / 1_000_000;
+  return mbps.toFixed(1);
+}
+
+/**
+ * @param {{ history: NetworkDatum[] }} options
+ * @returns {string}
+ */
+function getTrayTitle({ history }) {
+  const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
+  const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
+
+  return `D ${bytesToMbps(averageInput)} U ${bytesToMbps(averageOutput)}`;
+}
 
 /**
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {Promise<Electron.NativeImage>}
  */
 async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
-  const trayHeight = Math.floor(fullTrayHeight * 0.8);
+  const trayHeight =
+    typeof fullTrayHeight === "number" && fullTrayHeight > 0
+      ? Math.floor(fullTrayHeight * 0.8)
+      : 30;
 
   const data = history.slice(-MAX_BARS);
 
-  const totalHeight = trayHeight ?? 30;
-  const fontSize = totalHeight * FONT_SIZE;
-
-  const textBoxWidth = Math.floor(fontSize * TEXT_WIDTH);
-
-  const chartBoxWidth = Math.floor(trayHeight * CHART_WIDTH);
-
-  const totalWidth = Math.floor(textBoxWidth + chartBoxWidth);
+  const totalHeight = trayHeight;
+  const totalWidth = Math.floor(trayHeight * CHART_WIDTH);
 
   const halfHeight = totalHeight * 0.5;
 
@@ -210,13 +209,10 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const maxOutput = d3.max(history, (d) => d.outputBytes) || 100_000;
   const maxInput = d3.max(history, (d) => d.inputBytes) || 10_000_000;
 
-  const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
-  const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
-
   const strokeWidth = (totalWidth / MAX_BARS) * 0.4;
 
   const xScale = d3
-    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textBoxWidth])
+    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, 0])
     .padding(0.8);
 
   const heightScaleInput = d3.scaleLinear([0, maxInput], [0, halfHeight]);
@@ -265,51 +261,9 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     bars.push(inputBar);
   }
 
-  const MARGIN = totalWidth * 0.05;
-
-  const textX = textBoxWidth - MARGIN;
-
-  // Convert bytes/sec to Mbps
-  /**
-   * @param {number} bytes
-   * @returns {string}
-   */
-  const bytesToMbps = (bytes) => {
-    const bits = bytes * 8;
-    const mbps = bits / 1_000_000;
-    return `${mbps.toFixed(1)} Mbps`;
-  };
-
-  const outAvgString = bytesToMbps(averageOutput);
-  const inAvgString = bytesToMbps(averageInput);
-
-  const outMaxString = bytesToMbps(maxOutput);
-  const inMaxString = bytesToMbps(maxInput);
-
-  const pad = 15;
-
-  const outString = `${outAvgString.padStart(pad)} / ${outMaxString.padStart(pad)}`;
-  const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
-
   const children = [
     // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="0" y="0" width="${textBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="${textBoxWidth}" y="0" width="${chartBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
-    textSvg({
-      children: outString,
-      color,
-      fontSize,
-      x: textX,
-      y: "30%",
-    }),
-    textSvg({
-      children: inString,
-      color,
-      fontSize,
-      x: textX,
-      y: "70%",
-    }),
   ].join("\n");
 
   const svgString = svgWrapper({
@@ -431,6 +385,9 @@ async function startNetworkMonitoring() {
       });
       image.setTemplateImage(true);
       tray.setImage(image);
+      tray.setTitle(getTrayTitle({ history }), {
+        fontType: "monospacedDigit",
+      });
     } catch (error) {
       console.error("Error generating tray image:", error);
       app.quit();

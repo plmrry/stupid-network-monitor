@@ -19,7 +19,6 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
-    "biome.json",
     "forge.config.ts",
     "src/main.mjs",
     "src/speed-test.mjs"

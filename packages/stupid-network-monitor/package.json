@@ -15,7 +15,6 @@
 		"d3": "latest"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "latest",
 		"@electron-forge/cli": "latest",
 		"@electron-forge/maker-dmg": "latest",
 		"@electron-forge/plugin-auto-unpack-natives": "latest",

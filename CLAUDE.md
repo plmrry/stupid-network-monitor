@@ -34,7 +34,6 @@ Stupid Network Monitor is a macOS-only Electron application that displays real-t
 ## Code Style
 
 - ESM modules only (`.mjs` files, `import` statements)
-- Biome for linting/formatting: tabs, double quotes, semicolons, 100-char line width
 - TypeScript for type checking (not strict mode)
 
 ## Key Constraints

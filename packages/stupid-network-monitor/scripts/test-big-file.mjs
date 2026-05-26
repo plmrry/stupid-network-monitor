@@ -1,5 +1,4 @@
 // @ts-check
-/** biome-ignore-all lint/correctness/noUnusedVariables: Allow unused variables. */
 
 import { createReadStream, createWriteStream } from "node:fs";
 import { Readable } from "node:stream";

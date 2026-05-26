@@ -82,23 +82,7 @@ async function writeHistory({ history }) {
  */
 const abortController = new AbortController();
 
-/**
- * Alternative SVG renderer using resvg-js (Rust-based, high performance)
- * @param {string} svgString
- * @returns {Electron.NativeImage}
- */
-function createImageFromSvg(svgString) {
-  if (!svgString) return nativeImage.createEmpty();
-  const resvg = new Resvg(svgString, {
-    font: {
-      loadSystemFonts: true,
-    },
-  });
-  const pngData = resvg.render();
-  const pngBuffer = pngData.asPng();
-  const image = nativeImage.createFromBuffer(pngBuffer);
-  return image;
-}
+
 
 /**
  * @param {{ width: number | string, height: number | string, children: string }} options
@@ -162,6 +146,10 @@ const TEXT_WIDTH = 12;
 const FONT_SIZE = 0.3;
 
 /**
+ * Image should be: `32x32@2x (144dpi)`
+ * 
+ * @see: https://www.electronjs.org/docs/latest/api/tray#macos
+ * 
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {Promise<Electron.NativeImage>}
  */
@@ -298,6 +286,24 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   });
 
   return createImageFromSvg(svgString);
+}
+
+/**
+ * Alternative SVG renderer using resvg-js (Rust-based, high performance)
+ * @param {string} svgString
+ * @returns {Electron.NativeImage}
+ */
+function createImageFromSvg(svgString) {
+  if (!svgString) return nativeImage.createEmpty();
+  const resvg = new Resvg(svgString, {
+    font: {
+      loadSystemFonts: true,
+    },
+  });
+  const pngData = resvg.render();
+  const pngBuffer = pngData.asPng();
+  const image = nativeImage.createFromBuffer(pngBuffer);
+  return image;
 }
 
 /**
