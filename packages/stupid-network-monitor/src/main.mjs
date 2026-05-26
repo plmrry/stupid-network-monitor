@@ -1,7 +1,9 @@
 // @ts-check
 
-import { spawn } from "node:child_process";
+import childProcess from "node:child_process";
 import fs from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
 import { Resvg } from "@resvg/resvg-js";
 import * as d3 from "d3";
 import { app, Menu, nativeImage, Tray } from "electron";
@@ -12,6 +14,9 @@ import { speedTest } from "./speed-test.mjs";
  *
  * @typedef {{ inputBytes: number, outputBytes: number }} NetworkDatum
  */
+
+// Should improve performance.
+Menu.setApplicationMenu(null);
 
 // Only run on macOS
 if (process.platform !== "darwin") app.quit();
@@ -82,8 +87,6 @@ async function writeHistory({ history }) {
  */
 const abortController = new AbortController();
 
-
-
 /**
  * @param {{ width: number | string, height: number | string, children: string }} options
  * @returns {string}
@@ -116,7 +119,7 @@ function lineSvg({ x1, y1, x2, y2, stroke, strokeWidth }) {
   shape-rendering="crispEdges"
   stroke="${stroke}" 
   stroke-width="${strokeWidth}" 
-  opacity="0.5" 
+  opacity="1" 
 />
 `;
 }
@@ -132,7 +135,7 @@ function textSvg({ children, color, fontSize, x, y }) {
   fill="${color}"
   font-size="${fontSize}"
   text-anchor="end" 
-  text-rendering="optimizeLegibility"
+  text-rendering="geometricPrecision"
   x="${x}" 
   y="${y}" 
 >
@@ -144,6 +147,8 @@ const MAX_BARS = 20;
 const CHART_WIDTH = 2;
 const TEXT_WIDTH = 12;
 const FONT_SIZE = 0.3;
+const SCALE_FACTOR = 2;
+const COLOR = "white";
 
 /**
  * Image should be: `32x32@2x (144dpi)`
@@ -153,17 +158,17 @@ const FONT_SIZE = 0.3;
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {Promise<Electron.NativeImage>}
  */
-async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
-  const trayHeight = Math.floor(fullTrayHeight * 0.8);
+async function getTrayImage({ history, trayHeight: _trayHeight }) {
+  const scaledTrayHeight = Math.floor(_trayHeight * SCALE_FACTOR);
 
   const data = history.slice(-MAX_BARS);
 
-  const totalHeight = trayHeight ?? 30;
+  const totalHeight =(scaledTrayHeight ?? 30) * 0.9;
   const fontSize = totalHeight * FONT_SIZE;
 
   const textBoxWidth = Math.floor(fontSize * TEXT_WIDTH);
 
-  const chartBoxWidth = Math.floor(trayHeight * CHART_WIDTH);
+  const chartBoxWidth = Math.floor(scaledTrayHeight * CHART_WIDTH);
 
   const totalWidth = Math.floor(textBoxWidth + chartBoxWidth);
 
@@ -180,7 +185,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
   const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
   const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
 
-  const strokeWidth = (totalWidth / MAX_BARS) * 0.4;
+  const strokeWidth = (totalWidth / MAX_BARS) * 0.2;
 
   const xScale = d3
     .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textBoxWidth])
@@ -211,7 +216,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     const inputY2 = halfHeight + inputHeight;
 
     const outputBar = lineSvg({
-      stroke: color,
+      stroke: COLOR,
       strokeWidth,
       x1: x,
       x2: x,
@@ -220,7 +225,7 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     });
 
     const inputBar = lineSvg({
-      stroke: color,
+      stroke: COLOR,
       strokeWidth,
       x1: x,
       x2: x,
@@ -241,14 +246,14 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
    * @param {number} bytes
    * @returns {string}
    */
-  const bytesToMbps = (bytes) => {
+  const bytesToMbps = (bytes, showMbps = true) => {
     const bits = bytes * 8;
     const mbps = bits / 1_000_000;
-    return `${mbps.toFixed(1)} Mbps`;
+    return showMbps ? `${mbps.toFixed(1)} Mbps` : `${mbps.toFixed(1)}`;
   };
 
-  const outAvgString = bytesToMbps(averageOutput);
-  const inAvgString = bytesToMbps(averageInput);
+  const outAvgString = bytesToMbps(averageOutput, false);
+  const inAvgString = bytesToMbps(averageInput, false);
 
   const outMaxString = bytesToMbps(maxOutput);
   const inMaxString = bytesToMbps(maxInput);
@@ -263,16 +268,24 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     // /* html */ `<rect x="0" y="0" width="${textBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
     // /* html */ `<rect x="${textBoxWidth}" y="0" width="${chartBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
+    lineSvg({
+      x1: textBoxWidth,
+      x2: totalWidth,
+      y1: halfHeight,
+      y2: halfHeight,
+      stroke: COLOR,
+      strokeWidth: 2,
+    }),
     textSvg({
       children: outString,
-      color,
+      color: COLOR,
       fontSize,
       x: textX,
       y: "30%",
     }),
     textSvg({
       children: inString,
-      color,
+      color: COLOR,
       fontSize,
       x: textX,
       y: "70%",
@@ -285,24 +298,31 @@ async function getTrayImage({ history, trayHeight: fullTrayHeight, color }) {
     width: totalWidth,
   });
 
-  return createImageFromSvg(svgString);
-}
-
-/**
- * Alternative SVG renderer using resvg-js (Rust-based, high performance)
- * @param {string} svgString
- * @returns {Electron.NativeImage}
- */
-function createImageFromSvg(svgString) {
   if (!svgString) return nativeImage.createEmpty();
+
+  const fontPath = app.isPackaged ? path.join(process.resourcesPath, "assets/GeistPixel-Grid.ttf") : path.join(import.meta.dirname, "assets/GeistPixel-Grid.ttf");
+
+
   const resvg = new Resvg(svgString, {
+    dpi: 300,
     font: {
+      defaultFontFamily: "Geist Pixel Grid",
+      defaultFontSize: 30,
+      fontFiles: [fontPath],
+      fontDirs: [path.dirname(fontPath)],
       loadSystemFonts: true,
     },
+    shapeRendering: 2,
+    textRendering: 1,
   });
+
   const pngData = resvg.render();
   const pngBuffer = pngData.asPng();
-  const image = nativeImage.createFromBuffer(pngBuffer);
+  const image = nativeImage.createFromBuffer(pngBuffer, {
+    scaleFactor: SCALE_FACTOR,
+  });
+  image.setTemplateImage(true);
+
   return image;
 }
 
@@ -360,7 +380,7 @@ async function startNetworkMonitoring() {
 
   const netstatCommand = `netstat -I en0 -b -w 1`;
 
-  const child = spawn(netstatCommand, {
+  const child = childProcess.spawn(netstatCommand, {
     shell: true,
     signal: abortController.signal,
   });
@@ -398,6 +418,8 @@ async function startNetworkMonitoring() {
     const bounds = tray.getBounds();
     const trayHeight = bounds.height;
 
+    console.log(`Render: ${new Date().toLocaleTimeString()}`);
+
     /**
      * Push data into an array for charting history.
      * Limit to MAX_BARS entries.
@@ -408,9 +430,7 @@ async function startNetworkMonitoring() {
     }
 
     try {
-      const color = "black";
       const image = await getTrayImage({
-        color,
         history,
         trayHeight,
       });

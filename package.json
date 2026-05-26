@@ -1,6 +1,15 @@
 {
   "scripts": {
     "electron:dev": "pnpm stupid-network-monitor:dev",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "stupid-network-monitor:dev": "pnpm --filter stupid-network-monitor dev"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20260525.1",
+    "oxfmt": "^0.51.0",
+    "oxlint": "^1.66.0"
   }
 }

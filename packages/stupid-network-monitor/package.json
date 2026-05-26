@@ -1,6 +1,6 @@
 {
 	"name": "stupid-network-monitor",
-	"version": "2026.05.03",
+	"version": "2026.05.25",
 	"description": "Uses Electron to put a stupid network activity monitor in the macOS menu bar.",
 	"license": "CC0-1.0",
 	"main": "src/main.mjs",
@@ -12,7 +12,8 @@
 	"dependencies": {
 		"@resvg/resvg-js": "latest",
 		"@resvg/resvg-wasm": "latest",
-		"d3": "latest"
+		"d3": "latest",
+		"geist": "latest"
 	},
 	"devDependencies": {
 		"@electron-forge/cli": "latest",
@@ -33,14 +34,5 @@
 	"engines": {
 		"node": "24",
 		"pnpm": "10"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"electron",
-			"esbuild",
-			"fs-xattr",
-			"macos-alias",
-			"sharp"
-		]
 	}
 }

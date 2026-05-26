@@ -124,6 +124,7 @@ const config: ForgeConfig = {
 		appCopyright: "Copyright © 2026 Paul Murray",
 		// Enable asar for production packaging (required by Fuses)
 		asar: true,
+		extraResource: ["./assets/GeistPixel-Grid.ttf"],
 		icon: "./app-icons/icon",
 		name: "Stupid Network Monitor",
 
