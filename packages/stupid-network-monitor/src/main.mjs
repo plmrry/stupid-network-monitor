@@ -4,8 +4,19 @@ import childProcess from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import {
+  app,
+  BaseWindow,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  nativeImage,
+  net,
+  protocol,
+  Tray,
+  WebContentsView,
+} from "electron";
 import { Resvg } from "@resvg/resvg-js";
-import { app, Menu, nativeImage, Tray } from "electron";
 import { getTrayImage, MAX_BARS, SCALE_FACTOR } from "./get-tray-image.mjs";
 import { speedTest } from "./speed-test.mjs";
 
@@ -15,9 +26,6 @@ import { speedTest } from "./speed-test.mjs";
  * @typedef {{ inputBytes: number, outputBytes: number }} NetworkDatum
  */
 
-// Should improve performance.
-Menu.setApplicationMenu(null);
-
 // Only run on macOS
 if (process.platform !== "darwin") app.quit();
 
@@ -26,6 +34,9 @@ const HISTORY_FILE_NAME = "history.json";
 
 // Stable UUID for tray icon position persistence between relaunches
 const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
+
+const APP_SCHEME = "stupid-network-monitor";
+const MAIN_WINDOW_URL = `${APP_SCHEME}://bundle/index.html`;
 
 /**
  * Store five minutes of history, at 1 second intervals.
@@ -87,22 +98,47 @@ async function writeHistory({ history }) {
  */
 const abortController = new AbortController();
 
+let networkMonitoringStarted = false;
+
+// /**
+//  * Open the app's main window.
+//  */
+// async function createMainWindow() {
+//   const mainWindow = new BrowserWindow({
+//     backgroundColor: "#000000",
+//     height: 600,
+//     show: true,
+//     title: "Stupid Network Monitor",
+//     webPreferences: {
+//       contextIsolation: false,
+//       nodeIntegration: true,
+//       sandbox: false,
+//     },
+//     width: 800,
+//   });
+
+//   mainWindow.once("ready-to-show", () => {
+//     mainWindow.show();
+//   });
+
+//   mainWindow.once("closed", () => {
+//     // Do nothing - mainWindow will be garbage collected
+//   });
+
+//   await mainWindow.loadURL(MAIN_WINDOW_URL);
+
+//   return mainWindow;
+// }
+
 /**
  * Start the network monitoring
  */
 async function startNetworkMonitoring() {
   /**
-   * Hide the app from the dock
-   */
-  if (app.dock) {
-    app.dock.hide();
-  }
-
-  /**
    * Initialize the `Tray` a.k.a. the menu bar icon.
    */
-  const emptyImage = nativeImage.createEmpty();
-  const tray = new Tray(emptyImage, TRAY_GUID);
+  const initialImage = nativeImage.createMenuSymbol("chart.bar");
+  const tray = new Tray(initialImage, TRAY_GUID);
 
   /**
    * Ignore double-click events on the tray icon
@@ -166,16 +202,9 @@ async function startNetworkMonitoring() {
     /**
      * Parse the output line into numbers
      */
-    const parsed = split.map((s) => parseInt(s.trim(), 10));
-    const [
-      _packets,
-      _inputErrs,
-      inputBytes,
-      _outputPackets,
-      _outputErrs,
-      outputBytes,
-      _colls,
-    ] = parsed;
+    const splitLine = split.map((s) => parseInt(s.trim(), 10));
+    const inputBytes = splitLine.at(2);
+    const outputBytes = splitLine.at(5);
     const bounds = tray.getBounds();
     const trayHeight = bounds.height;
 
@@ -215,6 +244,7 @@ async function startNetworkMonitoring() {
       const image = nativeImage.createFromBuffer(pngBuffer, {
         scaleFactor: SCALE_FACTOR,
       });
+      console.log(`Tray image updated at ${new Date().toLocaleTimeString()}`);
       image.setTemplateImage(true);
       tray.setImage(image);
     } catch (error) {
@@ -241,11 +271,6 @@ async function startNetworkMonitoring() {
   speedTest();
 }
 
-app.whenReady().then(async () => {
-  console.log("App is ready");
-  await startNetworkMonitoring();
-});
-
 // Don't quit when all windows are closed - keep running in menu bar
 app.on("window-all-closed", () => {
   // Do nothing - app stays running with tray
@@ -254,4 +279,134 @@ app.on("window-all-closed", () => {
 // Kill the child process on app quit
 app.on("before-quit", () => {
   abortController.abort("App is quitting");
+});
+
+app.whenReady().then(async () => {
+  // await ipcMain.handle("start-network-monitoring", async (event) => {
+  //   if (event.senderFrame?.url !== MAIN_WINDOW_URL) {
+  //     throw new Error("Unauthorized monitoring request");
+  //   }
+
+  //   if (networkMonitoringStarted) return;
+  //   networkMonitoringStarted = true;
+
+  //   try {
+  //     await startNetworkMonitoring();
+  //   } catch (error) {
+  //     networkMonitoringStarted = false;
+  //     throw error;
+  //   }
+  // });
+  const mainWindow = new BaseWindow({
+    backgroundColor: "#000000",
+    height: 600,
+    resizable: false,
+    width: 800,
+  });
+
+  const webContentsView = new WebContentsView({
+    webPreferences: {
+      contextIsolation: false,
+      nodeIntegration: true,
+      sandbox: false,
+      webSecurity: false,
+    },
+  });
+
+  mainWindow.contentView.addChildView(webContentsView);
+
+  mainWindow.on("closed", () => {
+    webContentsView.webContents.close();
+  });
+
+  const setBounds = async () => {
+    const [width, height] = mainWindow.getContentSize();
+    webContentsView.setBounds({ x: 0, y: 0, width, height });
+  };
+
+  mainWindow.on("resize", async () => {
+    await setBounds();
+  });
+
+  // ipcMain.on("start-network-monitoring", async (event) => {
+  //   console.log("boobs");
+  // });
+
+  //   const renderMainWindow = async () => {
+  //     const html = /* html */ `
+  // <!DOCTYPE html>
+  //   <html lang="en">
+  //   <head>
+  //     <meta charset="UTF-8">
+  //     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //     <title>Network Monitor</title>
+  //   </head>
+  //   <body style="color: white; background-color: black; width: 100dvw; height: 100dvh; font-family: monospace; display: grid; justify-content: center; align-content: center;">
+  //     <h1>Network Monitor</h1>
+  //     <button>Start</button>
+  //     <script>
+  //       const { ipcRenderer } = require("electron");
+  //       const startButton = document.querySelector("button");
+
+  //       startButton.addEventListener("click", async () => {
+  //         startButton.textContent = "Stop";
+
+  //         try {
+  //           await ipcRenderer.invoke("start-network-monitoring");
+  //           startButton.textContent = "Started";
+  //         } catch (error) {
+  //           console.error("Failed to start network monitoring:", error);
+  //           startButton.disabled = false;
+  //           startButton.textContent = "Start";
+  //         }
+  //       });
+  //     </script>
+  //   </body>
+  // </html>`;
+  //     await webContentsView.webContents.loadURL(
+  //       `data:text/html;base64,${Buffer.from(html).toString("base64")}`,
+  //     );
+  //     await setBounds();
+  //   };
+
+  const renderMainWindow = async () => {
+    const html = /* html */ `
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+  </head>
+  <body style="color: white; background-color: black; width: 100dvw; height: 100dvh; font-family: monospace; display: grid; justify-content: center; align-content: center;">
+    <h1>Network Monitor</h1>
+    <button>Start</button>
+    <script>
+      console.log(Object.keys(window?.electronAPI));
+    </script>
+  </body>
+</html>`;
+    await webContentsView.webContents.loadURL(
+      `data:text/html;base64,${Buffer.from(html).toString("base64")}`,
+    );
+    await setBounds();
+  };
+
+  const openMainWindow = async () => {
+    const window = BrowserWindow.fromId(mainWindow.id);
+    if (window) {
+      window.show();
+      window.focus();
+    } else {
+      await renderMainWindow().catch((error) => {
+        console.error("Failed to open main window:", error);
+      });
+    }
+  };
+
+  app.on("activate", async () => {
+    await openMainWindow();
+  });
+
+  await openMainWindow();
 });

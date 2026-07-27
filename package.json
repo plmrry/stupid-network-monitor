@@ -1,26 +1,25 @@
 {
-  "packageManager": "pnpm@11.3.0",
-  "engines": {
-    "node": ">=24",
-    "pnpm": ">=11.3.0"
-  },
+  "name": "stupid-network-monitor-monorepo",
+  "version": "1.0.0",
+  "license": "CC0-1.0",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "electron:dev": "pnpm stupid-network-monitor:dev",
+    "app:dev": "turbo stupid-network-monitor#dev",
+    "app:package": "turbo stupid-network-monitor#package",
+    "app:typecheck": "turbo stupid-network-monitor#typecheck",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
-    "lint:fix": "oxlint --fix .",
-    "package": "turbo run package",
-    "stupid-network-monitor:dev": "pnpm --filter stupid-network-monitor dev",
-    "stupid-network-monitor:package": "pnpm --filter stupid-network-monitor package",
-    "typecheck": "turbo run typecheck"
+    "lint:fix": "oxlint --fix ."
   },
   "devDependencies": {
-    "@typescript/native-preview": "7.0.0-dev.20260525.1",
-    "oxfmt": "^0.51.0",
-    "oxlint": "^1.66.0",
-    "turbo": "^2.9.14"
+    "typescript": "latest",
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "turbo": "canary"
+  },
+  "packageManager": "pnpm@10.29.2",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
   }
 }

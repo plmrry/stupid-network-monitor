@@ -1,8 +1,7 @@
 // @ts-check
 
-import { createWriteStream } from "node:fs";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import fs from "node:fs";
+import stream from "node:stream";
 
 const SPEEDTEST_URL = `https://paulmurray.lol/api/speedtest`;
 const url = new URL(SPEEDTEST_URL);
@@ -42,11 +41,9 @@ async function downloadFile({ fileName }) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  await pipeline(
-    // @ts-expect-error
-    Readable.fromWeb(response.body),
-    createWriteStream(fileName)
-  );
+  const writeStream = await fs.createWriteStream(fileName);
+
+  await stream.promises.pipeline(stream.Readable.fromWeb(response.body), writeStream);
 }
 
 /**
@@ -55,8 +52,7 @@ async function downloadFile({ fileName }) {
 async function uploadFile({ fileName }) {
   url.searchParams.set("random", getRandom());
 
-  const { readFile } = await import("node:fs/promises");
-  const fileBuffer = await readFile(fileName);
+  const fileBuffer = await fs.promises.readFile(fileName);
 
   // Use Blob to handle redirects properly
   const body = new Blob([fileBuffer]);
@@ -76,11 +72,9 @@ async function uploadFile({ fileName }) {
       throw new Error(`Upload failed with status ${response.status}: ${text}`);
     }
 
-    await pipeline(
-      // @ts-expect-error
-      Readable.fromWeb(response.body),
-      createWriteStream(fileName)
-    );
+    const writeStream = await fs.createWriteStream(fileName);
+
+    await stream.promises.pipeline(stream.Readable.fromWeb(response.body), writeStream);
   } catch (error) {
     console.error("Upload error details:", error);
     if (error.cause) {

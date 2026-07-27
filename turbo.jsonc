@@ -5,16 +5,16 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "dev": {
+    "app:dev": {
       "cache": false,
       "persistent": true
     },
-    "package": {
+    "app:package": {
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": ["out/**"]
     },
-    "typecheck": {
+    "app:typecheck": {
       "dependsOn": ["^build"],
       "outputs": []
     }
