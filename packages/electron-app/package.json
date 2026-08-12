@@ -1,0 +1,36 @@
+{
+  "name": "@stupid-network-monitor/electron-app",
+  "version": "2026.08.11",
+  "type": "module",
+  "license": "CC0-1.0",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "electron-forge start",
+    "package": "node scripts/package.mjs",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@resvg/resvg-wasm": "latest",
+    "geist": "latest",
+    "sharp": "latest"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "latest",
+    "@electron-forge/core": "latest",
+    "@electron-forge/maker-dmg": "latest",
+    "@electron-forge/publisher-github": "latest",
+    "@electron-forge/shared-types": "latest",
+    "@types/d3": "latest",
+    "@types/node": "^26.1.1",
+    "@typescript/native-preview": "latest",
+    "d3": "latest",
+    "electron": "latest",
+    "esbuild": "latest",
+    "typescript": "latest"
+  },
+  "engines": {
+    "node": "24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.29.2"
+}
