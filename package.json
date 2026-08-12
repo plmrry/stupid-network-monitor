@@ -3,23 +3,23 @@
   "version": "1.0.0",
   "license": "CC0-1.0",
   "scripts": {
-    "app:dev": "turbo stupid-network-monitor#dev",
-    "app:package": "turbo stupid-network-monitor#package",
-    "app:typecheck": "turbo stupid-network-monitor#typecheck",
+    "app:dev": "turbo @stupid-network-monitor/electron-app#dev",
+    "app:package": "turbo @stupid-network-monitor/electron-app#package",
+    "app:typecheck": "turbo @stupid-network-monitor/electron-app#typecheck",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix ."
   },
   "devDependencies": {
-    "typescript": "latest",
     "oxfmt": "latest",
     "oxlint": "latest",
-    "turbo": "canary"
+    "turbo": "canary",
+    "typescript": "latest"
   },
-  "packageManager": "pnpm@10.29.2",
   "engines": {
     "node": ">=24",
     "pnpm": ">=10"
-  }
+  },
+  "packageManager": "pnpm@10.29.2"
 }
