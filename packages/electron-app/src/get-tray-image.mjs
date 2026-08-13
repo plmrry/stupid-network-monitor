@@ -66,7 +66,7 @@ function textSvg({ children, color, fontSize, x, y }) {
 
 export const MAX_BARS = 20;
 const CHART_WIDTH = 2;
-const TEXT_WIDTH = 12;
+const TEXT_WIDTH = 5;
 const FONT_SIZE = 0.3;
 export const SCALE_FACTOR = 2;
 const COLOR = "white";
@@ -108,9 +108,7 @@ export function getTrayImage({ history, trayHeight: _trayHeight }) {
 
   const strokeWidth = (totalWidth / MAX_BARS) * 0.2;
 
-  const xScale = d3
-    .scalePoint(d3.range(0, MAX_BARS), [totalWidth, textBoxWidth])
-    .padding(0.8);
+  const xScale = d3.scalePoint(d3.range(0, MAX_BARS), [totalWidth, textBoxWidth]).padding(0.8);
 
   const heightScaleInput = d3.scaleLinear([0, maxInput], [0, halfHeight]);
   const heightScaleOutput = d3.scaleLinear([0, maxOutput], [0, halfHeight]);
@@ -171,19 +169,17 @@ export function getTrayImage({ history, trayHeight: _trayHeight }) {
   const bytesToMbps = (bytes, showMbps = true) => {
     const bits = bytes * 8;
     const mbps = bits / 1_000_000;
-    return showMbps ? `${mbps.toFixed(1)} Mbps` : `${mbps.toFixed(1)}`;
+    const fixed = mbps.toFixed(0);
+    return showMbps ? `${fixed} Mbps` : `${fixed}`;
   };
 
-  const outAvgString = bytesToMbps(averageOutput, false);
-  const inAvgString = bytesToMbps(averageInput, false);
-
-  const outMaxString = bytesToMbps(maxOutput);
-  const inMaxString = bytesToMbps(maxInput);
+  const outAvgString = bytesToMbps(averageOutput, true);
+  const inAvgString = bytesToMbps(averageInput, true);
 
   const pad = 15;
 
-  const outString = `${outAvgString.padStart(pad)} / ${outMaxString.padStart(pad)}`;
-  const inString = `${inAvgString.padStart(pad)} / ${inMaxString.padStart(pad)}`;
+  const outString = outAvgString.padStart(pad);
+  const inString = inAvgString.padStart(pad);
 
   const children = [
     // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
