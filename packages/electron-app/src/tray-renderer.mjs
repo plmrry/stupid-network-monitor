@@ -1,12 +1,11 @@
 // @ts-check
 
 import fs from "node:fs/promises";
-import process from "node:process";
 import url from "node:url";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
 import { app, Menu, nativeImage, Tray } from "electron";
 import { getTrayImage, SCALE_FACTOR } from "./get-tray-image.mjs";
-import { readHistory } from "./network-monitor.mjs";
+import { HistoryManager } from "./history-manager.mjs";
 
 /**
  * Stable UUID for tray icon position persistence between relaunches
@@ -85,15 +84,12 @@ export const TrayRenderer = {
      * Create a context menu for the tray icon.
      */
     const contextMenu = Menu.buildFromTemplate([
-      // {
-      //   click: async () => {
-      //     history.length = 0;
-      //     history.push(...createPlaceholderHistory());
-      //     await writeHistory({ history });
-      //   },
-      //   label: "Clear History",
-      // },
-      // { type: "separator" },
+      {
+        click: async () => {
+        },
+        label: "Clear History",
+      },
+      { type: "separator" },
       {
         click: () => {
           app.quit();
@@ -116,7 +112,7 @@ export const TrayRenderer = {
     });
 
     const drawTheTray = async () => {
-      const history = await readHistory();
+      const history = await HistoryManager.read();
       /**
        * Get the Tray height.
        */

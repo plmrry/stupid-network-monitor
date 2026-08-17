@@ -1,10 +1,9 @@
 // @ts-check
 
-import fs from "node:fs/promises";
-import { app } from "electron";
 import { MAX_BARS } from "./get-tray-image.mjs";
 import { sample } from "./sample.mjs";
 import { speedTest } from "./speed-test.mjs";
+import { HistoryManager } from "./history-manager.mjs";
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -15,11 +14,6 @@ import { speedTest } from "./speed-test.mjs";
  *  timestamp: string;
  * }} NetworkDatum
  */
-
-/**
- * File where history is stored in the `userData` folder.
- */
-const HISTORY_FILE_NAME = "history.json";
 
 /**
  * Store 1 minute of history.
@@ -44,33 +38,13 @@ function createPlaceholderHistory() {
 }
 
 /**
- * Attempt to read existing history from `userData` folder.
- *
- * @returns {Promise<NetworkDatum[] | undefined>}
- */
-export async function readHistory() {
-  const userDataPath = app.getPath("userData");
-  const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
-  const parsed = await import(historyPath, { with: { type: "json" } }).then(
-    (module) => module.default,
-  );
-  return parsed;
-}
-
-/**
  * Attempt to write history to the `userData` folder.
  *
  * @param {{ history: NetworkDatum[] }} param0
  * @returns {Promise<void>}
  */
 export async function writeHistory({ history }) {
-  const userDataPath = app.getPath("userData");
-  const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
-  try {
-    await fs.writeFile(historyPath, JSON.stringify(history), "utf-8");
-  } catch {
-    // Do nothing
-  }
+  await HistoryManager.write({ history });
 }
 
 export async function clearHistory() {
@@ -82,7 +56,7 @@ export async function monitorNetwork({ signal }) {
   /**
    * See if we have existing history to load.
    */
-  const history = await readHistory();
+  const history = await HistoryManager.read();
 
   const onSample = async ({ inputBytes, outputBytes, timestamp }) => {
     /**
@@ -93,7 +67,7 @@ export async function monitorNetwork({ signal }) {
     while (history.length > MAX_HISTORY_LENGTH) {
       history.shift();
     }
-    await writeHistory({ history });
+    await HistoryManager.write({ history });
   };
 
   sample({
