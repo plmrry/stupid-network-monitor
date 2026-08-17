@@ -94,7 +94,6 @@ export async function speedTest() {
   for (const index of Array(DOWNLOAD_COUNT).keys()) {
     const fileName = getFilePath(index);
     try {
-      console.debug(`Downloading file ${fileName}...`);
       await downloadFile({ fileName });
     } catch {}
   }
@@ -105,7 +104,6 @@ export async function speedTest() {
   for (const index of Array(UPLOAD_COUNT).keys()) {
     const fileName = getFilePath(index);
     try {
-      console.debug(`Uploading file ${fileName}...`);
       await uploadFile({ fileName });
     } catch {}
   }

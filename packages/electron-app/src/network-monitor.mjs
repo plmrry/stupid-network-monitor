@@ -116,3 +116,9 @@ export async function monitorNetwork({ signal }) {
    */
   void speedTest();
 }
+
+export const NetworkMonitor = {
+  async start({ signal }) {
+    return await monitorNetwork({ signal });
+  },
+};
