@@ -1,4 +1,4 @@
-import { sample } from "../src/monitor.mjs";
+import { sample } from "../src/sample.mjs";
 
 // const result = await speedTest();
 try {

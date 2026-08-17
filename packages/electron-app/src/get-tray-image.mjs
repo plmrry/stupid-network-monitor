@@ -8,11 +8,19 @@ const TEXT_WIDTH = 6;
 const FONT_SIZE = 0.3;
 export const SCALE_FACTOR = 2;
 const COLOR = "white";
+const MAX_SAMPLE_INTERVAL_MILLISECONDS = 5_000;
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
  *
- * @typedef {{ inputBytes: number, outputBytes: number }} NetworkDatum
+ * @typedef {{ inputBytes: number, outputBytes: number, timestamp: string }} NetworkDatum
+ */
+
+/**
+ * @typedef {{
+ *   inputGbps: number,
+ *   outputGbps: number
+ * }} NetworkMeasurement
  */
 
 /**
@@ -72,16 +80,59 @@ function textSvg({ children, color, fontSize, x, y }) {
 }
 
 /**
- * Convert bytes to Gbps string.
+ * Convert bytes transferred during an interval to gigabits per second.
  *
  * @param {number} bytes
+ * @param {number} durationMilliseconds
+ * @returns {number}
+ */
+function bytesToGbps(bytes, durationMilliseconds) {
+  if (durationMilliseconds <= 0) return 0;
+
+  const bits = bytes * 8;
+  const durationSeconds = durationMilliseconds / 1_000;
+  return bits / durationSeconds / 1_000_000_000;
+}
+
+/**
+ * Derive per-interval network rates from timestamped byte counts.
+ *
+ * @param {NetworkDatum[]} history
+ * @returns {NetworkMeasurement[]}
+ */
+function getMeasurements(history) {
+  /** @type {NetworkMeasurement[]} */
+  const measurements = [];
+
+  for (let index = 1; index < history.length; index += 1) {
+    const previous = history[index - 1];
+    const current = history[index];
+
+    const durationMilliseconds = Date.parse(current.timestamp) - Date.parse(previous.timestamp);
+
+    if (
+      !Number.isFinite(durationMilliseconds) ||
+      durationMilliseconds <= 0 ||
+      durationMilliseconds > MAX_SAMPLE_INTERVAL_MILLISECONDS
+    ) {
+      continue;
+    }
+
+    measurements.push({
+      inputGbps: bytesToGbps(current.inputBytes, durationMilliseconds),
+      outputGbps: bytesToGbps(current.outputBytes, durationMilliseconds),
+    });
+  }
+
+  return measurements;
+}
+
+/**
+ * @param {number} gbps
  * @returns {string}
  */
-function bytesToGbps(bytes) {
-  const bits = bytes * 8;
-  const gbps = bits / 1_000_000;
-  const fixed = gbps.toFixed(2);
-  return `${fixed} Gbps`;
+function formatGbps(gbps) {
+  return `${gbps.toFixed(2)} Gbps`;
 }
 
 /**
@@ -95,7 +146,8 @@ function bytesToGbps(bytes) {
 export function getTrayImage({ history, trayHeight }) {
   const scaledTrayHeight = Math.floor(trayHeight * SCALE_FACTOR);
 
-  const data = history.slice(-MAX_BARS);
+  const measurements = getMeasurements(history);
+  const data = measurements.slice(-MAX_BARS);
 
   const totalHeight = (scaledTrayHeight ?? 30) * 0.9;
   const fontSize = totalHeight * FONT_SIZE;
@@ -113,11 +165,11 @@ export function getTrayImage({ history, trayHeight }) {
    * Use more than what's displayed to prevent big jumps.
    * Make vague assumptions about internet speeds if no data yet.
    */
-  const maxOutput = d3.max(history, (d) => d.outputBytes) || 100_000;
-  const maxInput = d3.max(history, (d) => d.inputBytes) || 10_000_000;
+  const maxOutput = d3.max(measurements, (measurement) => measurement.outputGbps) || 0.001;
+  const maxInput = d3.max(measurements, (measurement) => measurement.inputGbps) || 0.1;
 
-  const averageOutput = Math.floor(d3.mean(history, (d) => d.outputBytes) || 0);
-  const averageInput = Math.floor(d3.mean(history, (d) => d.inputBytes) || 0);
+  const displayedMaxOutput = d3.max(data, (measurement) => measurement.outputGbps) || 0;
+  const displayedMaxInput = d3.max(data, (measurement) => measurement.inputGbps) || 0;
 
   const strokeWidth = (totalWidth / MAX_BARS) * 0.2;
 
@@ -131,10 +183,10 @@ export function getTrayImage({ history, trayHeight }) {
 
   for (const [index, datum] of data.entries()) {
     const x = xScale(index);
-    const { inputBytes, outputBytes } = datum;
+    const { inputGbps, outputGbps } = datum;
 
-    const outputHeight = heightScaleOutput(outputBytes);
-    const inputHeight = heightScaleInput(inputBytes);
+    const outputHeight = heightScaleOutput(outputGbps);
+    const inputHeight = heightScaleInput(inputGbps);
 
     /**
      * Output is on top, pointing upwards.
@@ -173,13 +225,13 @@ export function getTrayImage({ history, trayHeight }) {
 
   const textX = textBoxWidth - MARGIN;
 
-  const outAvgString = bytesToGbps(averageOutput);
-  const inAvgString = bytesToGbps(averageInput);
+  const outMaxString = formatGbps(displayedMaxOutput);
+  const inMaxString = formatGbps(displayedMaxInput);
 
   const pad = 15;
 
-  const outString = outAvgString.padStart(pad);
-  const inString = inAvgString.padStart(pad);
+  const outString = outMaxString.padStart(pad);
+  const inString = inMaxString.padStart(pad);
 
   const children = [
     bars.join("\n"),

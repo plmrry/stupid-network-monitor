@@ -10,8 +10,8 @@ const speedtestUrlPath = `/api/speedtest`;
 const speedtestUrlOrigin = `https://paulmurray.lol`;
 const speedtestUrl = new URL(speedtestUrlPath, speedtestUrlOrigin);
 
-const DOWNLOAD_COUNT = 10;
-const UPLOAD_COUNT = DOWNLOAD_COUNT * 0.5;
+const DOWNLOAD_COUNT = 20;
+const UPLOAD_COUNT = DOWNLOAD_COUNT;
 
 /** @returns {string} */
 function getRandom() {

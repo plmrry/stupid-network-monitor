@@ -7,7 +7,8 @@ import { Resvg, initWasm } from "@resvg/resvg-wasm";
 import { app, Menu, nativeImage, Tray } from "electron";
 import { getTrayImage, MAX_BARS, SCALE_FACTOR } from "./get-tray-image.mjs";
 import { speedTest } from "./speed-test.mjs";
-import { sample } from "./monitor.mjs";
+import { sample } from "./sample.mjs";
+import { monitor } from "./monitor.mjs";
 
 /**
  * File where history is stored in the `userData` folder.
@@ -27,22 +28,25 @@ const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
 const MAX_HISTORY_LENGTH = 1 * 60;
 
 /**
- * History is five minutes of history at 1 second intervals.
- *
- * Starts filled with empty data.
- *
- * @type {NetworkDatum[]}
- */
-const emptyHistory = Array.from({ length: MAX_HISTORY_LENGTH }, () => ({
-  inputBytes: 0,
-  outputBytes: 0,
-}));
-
-/**
  * The `NetworkDatum` type represents network data at a point in time.
  *
- * @typedef {{ inputBytes: number, outputBytes: number }} NetworkDatum
+ * @typedef {{ inputBytes: number, outputBytes: number, timestamp: string }} NetworkDatum
  */
+
+/**
+ * Create zero-value placeholders at one-second intervals.
+ *
+ * @returns {NetworkDatum[]}
+ */
+function createPlaceholderHistory() {
+  const latestTimestamp = Date.now() - 1_000;
+
+  return Array.from({ length: MAX_BARS }, (_, index) => ({
+    inputBytes: 0,
+    outputBytes: 0,
+    timestamp: new Date(latestTimestamp - (MAX_BARS - index - 1) * 1_000).toISOString(),
+  }));
+}
 
 // Should improve performance.
 Menu.setApplicationMenu(null);
@@ -105,6 +109,25 @@ function renderTrayImage(svgString) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {value is NetworkDatum}
+ */
+function isNetworkDatum(value) {
+  if (!value || typeof value !== "object") return false;
+
+  const datum = /** @type {Partial<NetworkDatum>} */ (value);
+
+  return (
+    typeof datum.inputBytes === "number" &&
+    Number.isFinite(datum.inputBytes) &&
+    typeof datum.outputBytes === "number" &&
+    Number.isFinite(datum.outputBytes) &&
+    typeof datum.timestamp === "string" &&
+    Number.isFinite(Date.parse(datum.timestamp))
+  );
+}
+
+/**
  * Attempt to read existing history from `userData` folder.
  *
  * @returns {Promise<NetworkDatum[] | undefined>}
@@ -118,8 +141,10 @@ async function readHistory() {
     );
     if (!parsed) return undefined;
     if (!Array.isArray(parsed)) return undefined;
-    /** @type {NetworkDatum[]} */
-    return parsed;
+    return parsed
+      .filter(isNetworkDatum)
+      .slice(-MAX_HISTORY_LENGTH)
+      .map(({ inputBytes, outputBytes, timestamp }) => ({ inputBytes, outputBytes, timestamp }));
   } catch {
     return undefined;
   }
@@ -150,6 +175,7 @@ const abortController = new AbortController();
  * Start the network monitoring.
  */
 async function startNetworkMonitoring() {
+  monitor({ signal: abortController.signal });
   /**
    * Initialize the `Tray` a.k.a. the menu bar icon.
    */
@@ -164,7 +190,8 @@ async function startNetworkMonitoring() {
   /**
    * See if we have existing history to load.
    */
-  const history = (await readHistory()) ?? emptyHistory;
+  const storedHistory = await readHistory();
+  const history = storedHistory?.length ? storedHistory : createPlaceholderHistory();
 
   /**
    * Create a context menu for the tray icon.
@@ -173,6 +200,7 @@ async function startNetworkMonitoring() {
     {
       click: async () => {
         history.length = 0;
+        history.push(...createPlaceholderHistory());
         await writeHistory({ history });
       },
       label: "Clear History",
@@ -199,12 +227,12 @@ async function startNetworkMonitoring() {
     tray.popUpContextMenu(contextMenu);
   });
 
-  const onSample = async ({ inputBytes, outputBytes }) => {
+  const onSample = async ({ inputBytes, outputBytes, timestamp }) => {
     /**
      * Push data into an array for charting history.
-     * Limit to five minutes of entries.
+     * Limit to one minute of entries.
      */
-    history.push({ inputBytes, outputBytes });
+    history.push({ inputBytes, outputBytes, timestamp });
     while (history.length > MAX_HISTORY_LENGTH) {
       history.shift();
     }
@@ -228,7 +256,7 @@ async function startNetworkMonitoring() {
     tray.setImage(image);
   };
 
-  await sample({
+  sample({
     onSample,
     signal: abortController.signal,
   });
@@ -243,7 +271,9 @@ async function startNetworkMonitoring() {
     await speedTest();
   }, MAX_BARS * 1e3);
 
-  // Run speed test in background, don't block startup.
+  /**
+   * Run initial speed test.
+   */
   void speedTest();
 }
 
