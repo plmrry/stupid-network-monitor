@@ -2,6 +2,13 @@
 
 import * as d3 from "d3";
 
+export const MAX_BARS = 20;
+const CHART_WIDTH = 2;
+const TEXT_WIDTH = 6;
+const FONT_SIZE = 0.3;
+export const SCALE_FACTOR = 2;
+const COLOR = "white";
+
 /**
  * The `NetworkDatum` type represents network data at a point in time.
  *
@@ -64,12 +71,18 @@ function textSvg({ children, color, fontSize, x, y }) {
 </text>`;
 }
 
-export const MAX_BARS = 20;
-const CHART_WIDTH = 2;
-const TEXT_WIDTH = 5;
-const FONT_SIZE = 0.3;
-export const SCALE_FACTOR = 2;
-const COLOR = "white";
+/**
+ * Convert bytes to Gbps string.
+ *
+ * @param {number} bytes
+ * @returns {string}
+ */
+function bytesToGbps(bytes) {
+  const bits = bytes * 8;
+  const gbps = bits / 1_000_000;
+  const fixed = gbps.toFixed(3);
+  return `${fixed} Gbps`;
+}
 
 /**
  * Image should be: `32x32@2x (144dpi)`
@@ -160,21 +173,8 @@ export function getTrayImage({ history, trayHeight: _trayHeight }) {
 
   const textX = textBoxWidth - MARGIN;
 
-  // Convert bytes/sec to Mbps
-  /**
-   * @param {number} bytes
-   * @param {boolean} [showMbps]
-   * @returns {string}
-   */
-  const bytesToMbps = (bytes, showMbps = true) => {
-    const bits = bytes * 8;
-    const mbps = bits / 1_000_000;
-    const fixed = mbps.toFixed(0);
-    return showMbps ? `${fixed} Mbps` : `${fixed}`;
-  };
-
-  const outAvgString = bytesToMbps(averageOutput, true);
-  const inAvgString = bytesToMbps(averageInput, true);
+  const outAvgString = bytesToGbps(averageOutput);
+  const inAvgString = bytesToGbps(averageInput);
 
   const pad = 15;
 
@@ -182,9 +182,6 @@ export function getTrayImage({ history, trayHeight: _trayHeight }) {
   const inString = inAvgString.padStart(pad);
 
   const children = [
-    // /* html */ `<rect x="0" y="0" width="100%" height="90%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="0" y="0" width="${textBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
-    // /* html */ `<rect x="${textBoxWidth}" y="0" width="${chartBoxWidth}" height="100%" fill="none" stroke="${color}" />`,
     bars.join("\n"),
     lineSvg({
       x1: textBoxWidth,

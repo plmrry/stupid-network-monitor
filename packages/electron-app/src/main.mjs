@@ -1,6 +1,5 @@
 // @ts-check
 
-import childProcess from "node:child_process";
 import fs from "node:fs/promises";
 import process from "node:process";
 import url from "node:url";
@@ -9,6 +8,35 @@ import { app, Menu, nativeImage, Tray } from "electron";
 import { getTrayImage, MAX_BARS, SCALE_FACTOR } from "./get-tray-image.mjs";
 import { speedTest } from "./speed-test.mjs";
 import { sample } from "./monitor.mjs";
+
+/**
+ * File where history is stored in the `userData` folder.
+ */
+const HISTORY_FILE_NAME = "history.json";
+
+/**
+ * Stable UUID for tray icon position persistence between relaunches
+ */
+const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
+
+/**
+ * Store 1 minute of history.
+ *
+ * @constant {number}
+ */
+const MAX_HISTORY_LENGTH = 1 * 60;
+
+/**
+ * History is five minutes of history at 1 second intervals.
+ *
+ * Starts filled with empty data.
+ *
+ * @type {NetworkDatum[]}
+ */
+const emptyHistory = Array.from({ length: MAX_HISTORY_LENGTH }, () => ({
+  inputBytes: 0,
+  outputBytes: 0,
+}));
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -21,12 +49,6 @@ Menu.setApplicationMenu(null);
 
 // Only run on macOS
 if (process.platform !== "darwin") app.quit();
-
-// File where history is stored
-const HISTORY_FILE_NAME = "history.json";
-
-// Stable UUID for tray icon position persistence between relaunches
-const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
 
 const geistPixelSquareFontPath = url.fileURLToPath(
   new URL("./fonts/geist-pixel/GeistPixel-Square.woff2", import.meta.resolve("geist/font/pixel")),
@@ -81,25 +103,6 @@ function renderTrayImage(svgString) {
     resvg.free();
   }
 }
-
-/**
- * Store five minutes of history, at 1 second intervals.
- *
- * @constant {number}
- */
-const MAX_HISTORY_LENGTH = 5 * 60;
-
-/**
- * History is five minutes of history at 1 second intervals.
- *
- * Starts filled with empty data.
- *
- * @type {NetworkDatum[]}
- */
-const emptyHistory = Array.from({ length: MAX_HISTORY_LENGTH }, () => ({
-  inputBytes: 0,
-  outputBytes: 0,
-}));
 
 /**
  * Attempt to read existing history from `userData` folder.
