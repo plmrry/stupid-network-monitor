@@ -1,6 +1,6 @@
 {
   "name": "@stupid-network-monitor/electron-app",
-  "version": "2026.08.13",
+  "version": "2026.08.17",
   "type": "module",
   "license": "CC0-1.0",
   "main": "src/main.mjs",

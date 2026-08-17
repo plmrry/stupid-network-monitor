@@ -4,17 +4,16 @@ import fs from "node:fs/promises";
 import { app } from "electron";
 
 /**
- * The `NetworkDatum` type represents network data at a point in time.
+ * Store 1 minute of history.
  *
- * @typedef {{
- *  inputBytes: number;
- *  outputBytes: number;
- *  timestamp: string;
- * }} NetworkDatum
+ * @constant {number}
  */
+const MAX_HISTORY_LENGTH = 1 * 60;
 
 /**
  * File where history is stored in the `userData` folder.
+ *
+ * @constant {string}
  */
 const HISTORY_FILE_NAME = "history.json";
 
@@ -32,6 +31,9 @@ export const HistoryManager = {
     }
   },
   async write({ history }) {
+    while (history.length > MAX_HISTORY_LENGTH) {
+      history.shift();
+    }
     const userDataPath = app.getPath("userData");
     const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
     await fs.writeFile(historyPath, JSON.stringify(history), "utf-8");
