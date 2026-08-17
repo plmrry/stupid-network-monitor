@@ -1,111 +1,70 @@
 // @ts-check
 /// <reference types="node" />
 import crypto from "node:crypto";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import stream from "node:stream";
 
 const speedtestUrlPath = `/api/speedtest`;
-const speedtestUrlOrigin = `https://paulmurray.lol`;
+const speedtestUrlOrigin = `https://www.paulmurray.lol`;
 const speedtestUrl = new URL(speedtestUrlPath, speedtestUrlOrigin);
 
-const DOWNLOAD_COUNT = 20;
-const UPLOAD_COUNT = DOWNLOAD_COUNT;
+const count = 1000;
+const size = 1;
 
-/** @returns {string} */
-function getRandom() {
-  const array = new Uint32Array(2);
-  const values = crypto.getRandomValues(array);
-  return [...values].map((num) => num.toString(32)).join("");
+async function downloadFile({ signal }) {
+  try {
+    speedtestUrl.searchParams.set("size", String(size * 10));
+
+    const request = new Request(speedtestUrl, {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    await fetch(request, { signal });
+  } catch {}
 }
 
-const rand = getRandom();
-
-/**
- * @param {number} index
- * @returns {string}
- */
-function getFilePath(index) {
-  return path.join(os.tmpdir(), `test-download-${rand}-${index}.txt`);
+async function* createRandomBody(byteLength) {
+  while (byteLength) {
+    const n = Math.min(byteLength, 65_536);
+    yield crypto.randomBytes(n);
+    byteLength -= n;
+  }
 }
 
-/**
- * @param {{ fileName: string, method?: "GET" | "POST" }} parameters
- */
-async function downloadFile({ fileName }) {
-  const random = getRandom();
-  speedtestUrl.searchParams.set("random", random);
+async function uploadFile({ signal }) {
+  try {
+    const body = createRandomBody(size * 0.2 * 1_024 * 1_024);
 
-  const request = new Request(speedtestUrl, {
-    cache: "no-store",
-    headers: new Headers({
-      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
-    }),
-    method: "GET",
-  });
+    const request = new Request(speedtestUrl, {
+      body,
+      cache: "no-store",
+      duplex: "half",
+      method: "POST",
+    });
 
-  const response = await fetch(request);
-
-  await using readableStream = stream.Readable.fromWeb(response.body);
-
-  await using writeStream = await fs.createWriteStream(fileName);
-
-  await stream.promises.pipeline(readableStream, writeStream);
-}
-
-/**
- * @param {{ fileName: string, method?: "GET" | "POST" }} parameters
- */
-async function uploadFile({ fileName }) {
-  const random = getRandom();
-  speedtestUrl.searchParams.set("random", random);
-
-  await using readFileStream = fs.createReadStream(fileName);
-
-  const request = new Request(speedtestUrl, {
-    body: readFileStream,
-    cache: "no-store",
-    duplex: "half",
-    headers: new Headers({
-      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
-    }),
-    method: "POST",
-  });
-
-  const response = await fetch(request);
-
-  await using readableStream = stream.Readable.fromWeb(response.body);
-
-  await using writeStream = await fs.createWriteStream(fileName);
-
-  await stream.promises.pipeline(readableStream, writeStream);
+    await fetch(request, { signal });
+  } catch {}
 }
 
 /**
  * @returns {Promise<{ functionDuration: number }>}
  */
 export async function speedTest() {
+  const downloadSignal = AbortSignal.timeout(10_000);
+
   const start = performance.now();
 
-  /**
-   * DOWNLOAD
-   */
-  for (const index of Array(DOWNLOAD_COUNT).keys()) {
-    const fileName = getFilePath(index);
-    try {
-      await downloadFile({ fileName });
-    } catch {}
+  const promises = [];
+
+  for (const _ of Array(count).keys()) {
+    promises.push(downloadFile({ signal: downloadSignal }));
   }
 
-  /**
-   * UPLOAD
-   */
-  for (const index of Array(UPLOAD_COUNT).keys()) {
-    const fileName = getFilePath(index);
-    try {
-      await uploadFile({ fileName });
-    } catch {}
+  await Promise.allSettled(promises);
+
+  const uploadSignal = AbortSignal.timeout(10_000);
+
+  for (const _ of Array(count).keys()) {
+    uploadFile({ signal: uploadSignal });
   }
 
   const end = performance.now();
@@ -115,4 +74,9 @@ export async function speedTest() {
   return {
     functionDuration,
   };
+}
+
+if (import.meta.main) {
+  console.log("Starting speed test...");
+  await speedTest();
 }
