@@ -113,8 +113,9 @@ async function readHistory() {
   const userDataPath = app.getPath("userData");
   const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
   try {
-    const fileContents = await fs.readFile(historyPath, "utf-8");
-    const parsed = JSON.parse(fileContents);
+    const parsed = await import(historyPath, { with: { type: "json" } }).then(
+      (module) => module.default,
+    );
     if (!parsed) return undefined;
     if (!Array.isArray(parsed)) return undefined;
     /** @type {NetworkDatum[]} */

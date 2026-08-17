@@ -80,7 +80,7 @@ function textSvg({ children, color, fontSize, x, y }) {
 function bytesToGbps(bytes) {
   const bits = bytes * 8;
   const gbps = bits / 1_000_000;
-  const fixed = gbps.toFixed(3);
+  const fixed = gbps.toFixed(2);
   return `${fixed} Gbps`;
 }
 
@@ -92,8 +92,8 @@ function bytesToGbps(bytes) {
  * @param {{ history: NetworkDatum[], trayHeight?: number, color?: string }} options
  * @returns {string}
  */
-export function getTrayImage({ history, trayHeight: _trayHeight }) {
-  const scaledTrayHeight = Math.floor(_trayHeight * SCALE_FACTOR);
+export function getTrayImage({ history, trayHeight }) {
+  const scaledTrayHeight = Math.floor(trayHeight * SCALE_FACTOR);
 
   const data = history.slice(-MAX_BARS);
 
