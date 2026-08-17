@@ -5,15 +5,9 @@ import process from "node:process";
 import url from "node:url";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
 import { app, Menu, nativeImage, Tray } from "electron";
-import { getTrayImage, MAX_BARS, SCALE_FACTOR } from "./get-tray-image.mjs";
-import { speedTest } from "./speed-test.mjs";
+import { getTrayImage, SCALE_FACTOR } from "./get-tray-image.mjs";
 import { sample } from "./sample.mjs";
-import { monitor } from "./monitor.mjs";
-
-/**
- * File where history is stored in the `userData` folder.
- */
-const HISTORY_FILE_NAME = "history.json";
+import { monitorNetwork, readHistory } from "./monitor-network.mjs";
 
 /**
  * Stable UUID for tray icon position persistence between relaunches
@@ -21,32 +15,10 @@ const HISTORY_FILE_NAME = "history.json";
 const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
 
 /**
- * Store 1 minute of history.
- *
- * @constant {number}
- */
-const MAX_HISTORY_LENGTH = 1 * 60;
-
-/**
  * The `NetworkDatum` type represents network data at a point in time.
  *
  * @typedef {{ inputBytes: number, outputBytes: number, timestamp: string }} NetworkDatum
  */
-
-/**
- * Create zero-value placeholders at one-second intervals.
- *
- * @returns {NetworkDatum[]}
- */
-function createPlaceholderHistory() {
-  const latestTimestamp = Date.now() - 1_000;
-
-  return Array.from({ length: MAX_BARS }, (_, index) => ({
-    inputBytes: 0,
-    outputBytes: 0,
-    timestamp: new Date(latestTimestamp - (MAX_BARS - index - 1) * 1_000).toISOString(),
-  }));
-}
 
 // Should improve performance.
 Menu.setApplicationMenu(null);
@@ -109,73 +81,11 @@ function renderTrayImage(svgString) {
 }
 
 /**
- * @param {unknown} value
- * @returns {value is NetworkDatum}
- */
-function isNetworkDatum(value) {
-  if (!value || typeof value !== "object") return false;
-
-  const datum = /** @type {Partial<NetworkDatum>} */ (value);
-
-  return (
-    typeof datum.inputBytes === "number" &&
-    Number.isFinite(datum.inputBytes) &&
-    typeof datum.outputBytes === "number" &&
-    Number.isFinite(datum.outputBytes) &&
-    typeof datum.timestamp === "string" &&
-    Number.isFinite(Date.parse(datum.timestamp))
-  );
-}
-
-/**
- * Attempt to read existing history from `userData` folder.
- *
- * @returns {Promise<NetworkDatum[] | undefined>}
- */
-async function readHistory() {
-  const userDataPath = app.getPath("userData");
-  const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
-  try {
-    const parsed = await import(historyPath, { with: { type: "json" } }).then(
-      (module) => module.default,
-    );
-    if (!parsed) return undefined;
-    if (!Array.isArray(parsed)) return undefined;
-    return parsed
-      .filter(isNetworkDatum)
-      .slice(-MAX_HISTORY_LENGTH)
-      .map(({ inputBytes, outputBytes, timestamp }) => ({ inputBytes, outputBytes, timestamp }));
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Attempt to write history to the `userData` folder.
- *
- * @param {{ history: NetworkDatum[] }} param0
- * @returns {Promise<void>}
- */
-async function writeHistory({ history }) {
-  const userDataPath = app.getPath("userData");
-  const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
-  try {
-    await fs.writeFile(historyPath, JSON.stringify(history), "utf-8");
-  } catch {
-    // Do nothing
-  }
-}
-
-/**
  * Abort controller to kill child processes on app quit.
  */
 const abortController = new AbortController();
 
-/**
- * Start the network monitoring.
- */
-async function startNetworkMonitoring() {
-  monitor({ signal: abortController.signal });
+async function drawTray() {
   /**
    * Initialize the `Tray` a.k.a. the menu bar icon.
    */
@@ -188,24 +98,18 @@ async function startNetworkMonitoring() {
   tray.setIgnoreDoubleClickEvents(true);
 
   /**
-   * See if we have existing history to load.
-   */
-  const storedHistory = await readHistory();
-  const history = storedHistory?.length ? storedHistory : createPlaceholderHistory();
-
-  /**
    * Create a context menu for the tray icon.
    */
   const contextMenu = Menu.buildFromTemplate([
-    {
-      click: async () => {
-        history.length = 0;
-        history.push(...createPlaceholderHistory());
-        await writeHistory({ history });
-      },
-      label: "Clear History",
-    },
-    { type: "separator" },
+    // {
+    //   click: async () => {
+    //     history.length = 0;
+    //     history.push(...createPlaceholderHistory());
+    //     await writeHistory({ history });
+    //   },
+    //   label: "Clear History",
+    // },
+    // { type: "separator" },
     {
       click: () => {
         app.quit();
@@ -227,15 +131,8 @@ async function startNetworkMonitoring() {
     tray.popUpContextMenu(contextMenu);
   });
 
-  const onSample = async ({ inputBytes, outputBytes, timestamp }) => {
-    /**
-     * Push data into an array for charting history.
-     * Limit to one minute of entries.
-     */
-    history.push({ inputBytes, outputBytes, timestamp });
-    while (history.length > MAX_HISTORY_LENGTH) {
-      history.shift();
-    }
+  const onSample = async () => {
+    const history = await readHistory();
     /**
      * Get the Tray height.
      */
@@ -260,26 +157,12 @@ async function startNetworkMonitoring() {
     onSample,
     signal: abortController.signal,
   });
-
-  /**
-   * Every `MAX_BARS` seconds:
-   * - Write history to disk.
-   * - Run a speed test.
-   */
-  setInterval(async () => {
-    await writeHistory({ history });
-    await speedTest();
-  }, MAX_BARS * 1e3);
-
-  /**
-   * Run initial speed test.
-   */
-  void speedTest();
 }
 
 app.whenReady().then(async () => {
   await initializeRenderer();
-  await startNetworkMonitoring();
+  monitorNetwork({ signal: abortController.signal });
+  drawTray();
 });
 
 // Don't quit when all windows are closed - keep running in menu bar.

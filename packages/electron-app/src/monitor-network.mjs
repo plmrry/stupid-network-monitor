@@ -48,29 +48,13 @@ function createPlaceholderHistory() {
  *
  * @returns {Promise<NetworkDatum[] | undefined>}
  */
-async function readHistory() {
+export async function readHistory() {
   const userDataPath = app.getPath("userData");
   const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
-  try {
-    const parsed = await import(historyPath, { with: { type: "json" } }).then(
-      (module) => module.default,
-    );
-    if (!parsed) return undefined;
-    if (!Array.isArray(parsed)) return undefined;
-    return parsed
-      .filter(function isNetworkDatum(value) {
-        if (!value || typeof value !== "object") return false;
-        return (
-          Number.isFinite(value.inputBytes) &&
-          Number.isFinite(value.outputBytes) &&
-          Number.isFinite(Date.parse(value.timestamp))
-        );
-      })
-      .slice(-MAX_HISTORY_LENGTH)
-      .map(({ inputBytes, outputBytes, timestamp }) => ({ inputBytes, outputBytes, timestamp }));
-  } catch {
-    return undefined;
-  }
+  const parsed = await import(historyPath, { with: { type: "json" } }).then(
+    (module) => module.default,
+  );
+  return parsed;
 }
 
 /**
@@ -79,7 +63,7 @@ async function readHistory() {
  * @param {{ history: NetworkDatum[] }} param0
  * @returns {Promise<void>}
  */
-async function writeHistory({ history }) {
+export async function writeHistory({ history }) {
   const userDataPath = app.getPath("userData");
   const historyPath = `${userDataPath}/${HISTORY_FILE_NAME}`;
   try {
@@ -89,13 +73,16 @@ async function writeHistory({ history }) {
   }
 }
 
-export async function monitor({ signal }) {
+export async function clearHistory() {
+  const history = createPlaceholderHistory();
+  await writeHistory({ history });
+}
+
+export async function monitorNetwork({ signal }) {
   /**
    * See if we have existing history to load.
    */
-  const storedHistory = await readHistory();
-  
-  const history = storedHistory?.length ? storedHistory : createPlaceholderHistory();
+  const history = await readHistory();
 
   const onSample = async ({ inputBytes, outputBytes, timestamp }) => {
     /**
@@ -106,6 +93,7 @@ export async function monitor({ signal }) {
     while (history.length > MAX_HISTORY_LENGTH) {
       history.shift();
     }
+    await writeHistory({ history });
   };
 
   sample({
@@ -118,9 +106,9 @@ export async function monitor({ signal }) {
    * - Write history to disk.
    * - Run a speed test.
    */
-  setInterval(async () => {
-    await writeHistory({ history });
-    await speedTest();
+  setInterval(() => {
+    writeHistory({ history });
+    speedTest();
   }, MAX_BARS * 1e3);
 
   /**
