@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "latest",
+    "d3": "latest",
     "geist": "latest",
     "sharp": "latest"
   },
@@ -23,7 +24,6 @@
     "@types/d3": "latest",
     "@types/node": "^26.1.1",
     "@typescript/native-preview": "latest",
-    "d3": "latest",
     "electron": "latest",
     "esbuild": "latest",
     "typescript": "latest"

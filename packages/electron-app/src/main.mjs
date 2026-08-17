@@ -8,6 +8,7 @@ import { Resvg, initWasm } from "@resvg/resvg-wasm";
 import { app, Menu, nativeImage, Tray } from "electron";
 import { getTrayImage, MAX_BARS, SCALE_FACTOR } from "./get-tray-image.mjs";
 import { speedTest } from "./speed-test.mjs";
+import { sample } from "./monitor.mjs";
 
 /**
  * The `NetworkDatum` type represents network data at a point in time.
@@ -28,14 +29,9 @@ const HISTORY_FILE_NAME = "history.json";
 const TRAY_GUID = "a1bcb3d4-e5f6-7890-abcd-ef1234567890";
 
 const geistPixelSquareFontPath = url.fileURLToPath(
-  new URL(
-    "./fonts/geist-pixel/GeistPixel-Square.woff2",
-    import.meta.resolve("geist/font/pixel"),
-  ),
+  new URL("./fonts/geist-pixel/GeistPixel-Square.woff2", import.meta.resolve("geist/font/pixel")),
 );
-const resvgWasmPath = url.fileURLToPath(
-  import.meta.resolve("@resvg/resvg-wasm/index_bg.wasm"),
-);
+const resvgWasmPath = url.fileURLToPath(import.meta.resolve("@resvg/resvg-wasm/index_bg.wasm"));
 
 /** @type {Uint8Array} */
 let geistPixelSquareFont;
@@ -151,13 +147,6 @@ const abortController = new AbortController();
  */
 async function startNetworkMonitoring() {
   /**
-   * Hide the app from the dock.
-   */
-  if (app.dock) {
-    app.dock.hide();
-  }
-
-  /**
    * Initialize the `Tray` a.k.a. the menu bar icon.
    */
   const initialImage = nativeImage.createMenuSymbol("chart.bar");
@@ -206,46 +195,7 @@ async function startNetworkMonitoring() {
     tray.popUpContextMenu(contextMenu);
   });
 
-  const netstatCommand = "netstat -I en0 -b -w 1";
-
-  const child = childProcess.spawn(netstatCommand, {
-    shell: true,
-    signal: abortController.signal,
-  });
-
-  /**
-   * Output from `netstat` looks like this:
-   *
-   * ```bash
-   *            input        (Total)           output
-   *   packets  errs      bytes    packets  errs      bytes colls
-   *        76     0      58112         58     0      12677     0
-   *        48     0      17278         50     0      11179     0
-   * ```
-   */
-  child.stdout.on("data", async (stdout) => {
-    /**
-     * Ignore the initial header lines.
-     */
-    const split = stdout.toString().split(/\s+/).filter(Boolean);
-    if (split.length !== 7) return;
-
-    /**
-     * Parse the output line into numbers.
-     */
-    const parsed = split.map((value) => Number.parseInt(value.trim(), 10));
-    const [
-      _packets,
-      _inputErrors,
-      inputBytes,
-      _outputPackets,
-      _outputErrors,
-      outputBytes,
-      _collisions,
-    ] = parsed;
-    const bounds = tray.getBounds();
-    const trayHeight = bounds.height;
-
+  const onSample = async ({ inputBytes, outputBytes }) => {
     /**
      * Push data into an array for charting history.
      * Limit to five minutes of entries.
@@ -254,26 +204,29 @@ async function startNetworkMonitoring() {
     while (history.length > MAX_HISTORY_LENGTH) {
       history.shift();
     }
+    /**
+     * Get the Tray height.
+     */
+    const bounds = tray.getBounds();
+    const trayHeight = bounds.height;
+    /**
+     * Generate a new Tray SVG string.
+     */
+    const svgString = getTrayImage({
+      history,
+      trayHeight,
+    });
+    const pngBuffer = renderTrayImage(svgString);
+    const image = nativeImage.createFromBuffer(pngBuffer, {
+      scaleFactor: SCALE_FACTOR,
+    });
+    image.setTemplateImage(true);
+    tray.setImage(image);
+  };
 
-    try {
-      const svgString = getTrayImage({
-        history,
-        trayHeight,
-      });
-      const pngBuffer = renderTrayImage(svgString);
-      const image = nativeImage.createFromBuffer(pngBuffer, {
-        scaleFactor: SCALE_FACTOR,
-      });
-      image.setTemplateImage(true);
-      tray.setImage(image);
-    } catch (error) {
-      console.error("Error generating tray image:", error);
-      app.quit();
-    }
-  });
-
-  child.on("error", () => {
-    app.exit(0);
+  await sample({
+    onSample,
+    signal: abortController.signal,
   });
 
   /**

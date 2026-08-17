@@ -1,17 +1,23 @@
 // @ts-check
-
+/// <reference types="node" />
+import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import stream from "node:stream";
 
-const SPEEDTEST_URL = `https://paulmurray.lol/api/speedtest`;
-const url = new URL(SPEEDTEST_URL);
+const speedtestUrlPath = `/api/speedtest`;
+const speedtestUrlOrigin = `https://paulmurray.lol`;
+const speedtestUrl = new URL(speedtestUrlPath, speedtestUrlOrigin);
 
 const DOWNLOAD_COUNT = 10;
 const UPLOAD_COUNT = DOWNLOAD_COUNT * 0.5;
 
 /** @returns {string} */
 function getRandom() {
-  return Math.floor(Math.random() * 1_000_000).toString();
+  const array = new Uint32Array(2);
+  const values = crypto.getRandomValues(array);
+  return [...values].map((num) => num.toString(32)).join("");
 }
 
 const rand = getRandom();
@@ -21,67 +27,59 @@ const rand = getRandom();
  * @returns {string}
  */
 function getFilePath(index) {
-  return `/tmp/test-download-${rand}-${index}.txt`;
+  return path.join(os.tmpdir(), `test-download-${rand}-${index}.txt`);
 }
 
 /**
  * @param {{ fileName: string, method?: "GET" | "POST" }} parameters
  */
 async function downloadFile({ fileName }) {
-  url.searchParams.set("random", getRandom());
+  const random = getRandom();
+  speedtestUrl.searchParams.set("random", random);
 
-  const response = await fetch(url.toString(), {
-    headers: {
+  const request = new Request(speedtestUrl, {
+    cache: "no-store",
+    headers: new Headers({
       "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
-    },
+    }),
     method: "GET",
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
+  const response = await fetch(request);
 
-  const writeStream = await fs.createWriteStream(fileName);
+  await using readableStream = stream.Readable.fromWeb(response.body);
 
-  await stream.promises.pipeline(stream.Readable.fromWeb(response.body), writeStream);
+  await using writeStream = await fs.createWriteStream(fileName);
+
+  await stream.promises.pipeline(readableStream, writeStream);
 }
 
 /**
  * @param {{ fileName: string, method?: "GET" | "POST" }} parameters
  */
 async function uploadFile({ fileName }) {
-  url.searchParams.set("random", getRandom());
+  const random = getRandom();
+  speedtestUrl.searchParams.set("random", random);
 
-  const fileBuffer = await fs.promises.readFile(fileName);
+  await using readFileStream = fs.createReadStream(fileName);
 
-  // Use Blob to handle redirects properly
-  const body = new Blob([fileBuffer]);
+  const request = new Request(speedtestUrl, {
+    body: readFileStream,
+    cache: "no-store",
+    duplex: "half",
+    headers: new Headers({
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+    }),
+    method: "POST",
+  });
 
-  // Upload using fetch
-  try {
-    const response = await fetch(url, {
-      body,
-      headers: {
-        "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
-      },
-      method: "POST",
-    });
+  const response = await fetch(request);
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Upload failed with status ${response.status}: ${text}`);
-    }
+  await using readableStream = stream.Readable.fromWeb(response.body);
 
-    const writeStream = await fs.createWriteStream(fileName);
+  await using writeStream = await fs.createWriteStream(fileName);
 
-    await stream.promises.pipeline(stream.Readable.fromWeb(response.body), writeStream);
-  } catch (error) {
-    console.error("Upload error details:", error);
-    if (error.cause) {
-      console.error("Error cause:", error.cause);
-    }
-    throw error;
-  }
+  await stream.promises.pipeline(readableStream, writeStream);
 }
 
 /**
@@ -93,17 +91,23 @@ export async function speedTest() {
   /**
    * DOWNLOAD
    */
-  for (const index of Array.from({ length: DOWNLOAD_COUNT }).keys()) {
+  for (const index of Array(DOWNLOAD_COUNT).keys()) {
     const fileName = getFilePath(index);
-    await downloadFile({ fileName });
+    try {
+      console.debug(`Downloading file ${fileName}...`);
+      await downloadFile({ fileName });
+    } catch {}
   }
 
   /**
    * UPLOAD
    */
-  for (const index of Array.from({ length: UPLOAD_COUNT }).keys()) {
+  for (const index of Array(UPLOAD_COUNT).keys()) {
     const fileName = getFilePath(index);
-    await uploadFile({ fileName });
+    try {
+      console.debug(`Uploading file ${fileName}...`);
+      await uploadFile({ fileName });
+    } catch {}
   }
 
   const end = performance.now();

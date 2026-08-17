@@ -5,10 +5,12 @@
     "incremental": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+    "lib": ["ESNext"],
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": false,
+    "types": ["node"],
     "tsBuildInfoFile": "node_modules/.tsbuildinfo"
   },
   "exclude": ["node_modules"],
